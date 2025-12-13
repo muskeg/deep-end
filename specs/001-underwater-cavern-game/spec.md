@@ -3,8 +3,9 @@
 **Feature Branch**: `001-underwater-cavern-game`  
 **Created**: 2025-12-12  
 **Updated**: 2025-12-12  
-**Status**: Deployed  
+**Status**: Production Ready - All Features Complete  
 **Live Demo**: https://muskeg.github.io/deep-end/  
+**Test Suite**: 332/332 tests passing (100%)  
 **Input**: User description: "Action arcade game where player navigates procedurally generated underwater caverns collecting pearls with oxygen-based time limit"
 
 **Game Title**: Deep End  
@@ -123,6 +124,17 @@ Each playthrough generates unique cavern layouts with increasing difficulty, pro
 - **FR-025**: System MUST keep UI elements (oxygen meter, level display, pearl count) fixed to camera view
 - **FR-026**: System MUST be deployable to GitHub Pages with automated build pipeline
 - **FR-027**: System MUST properly initialize pearl tracking counters (totalPearls, collectedPearls) at level start to prevent state carryover between levels
+- **FR-028**: System MUST implement DifficultySystem that scales enemy count, oxygen depletion rate, cavern complexity, and collectible count based on level number
+- **FR-029**: System MUST automatically progress to next level when player collects all pearls (level increments, difficulty increases)
+- **FR-030**: System MUST cap difficulty parameters to maintain game solvability at high levels
+- **FR-031**: System MUST provide pause functionality accessible via ESC key that halts all gameplay (oxygen depletion, enemy movement) and displays pause overlay
+- **FR-032**: System MUST track and persist high scores (best level reached) in browser LocalStorage across sessions
+- **FR-033**: System MUST display real-time FPS counter toggleable via F key for performance monitoring
+- **FR-034**: System MUST provide procedurally generated sound effects for game events (pearl collection, enemy collision, level complete, game over, oxygen warning)
+- **FR-035**: System MUST implement oxygen warning audio that beeps with escalating frequency (faster beeping as oxygen decreases from 20% to 0%)
+- **FR-036**: System MUST allow audio mute/unmute toggle via M key
+- **FR-037**: System MUST clean up event listeners on scene restart to prevent duplicate event handling and state corruption
+- **FR-038**: System MUST use PLAYER_CONFIG.INITIAL_OXYGEN constant consistently for oxygen calculations (avoiding undefined MAX_OXYGEN references)
 
 ### Key Entities
 
@@ -134,6 +146,9 @@ Each playthrough generates unique cavern layouts with increasing difficulty, pro
 - **Water Current**: Environmental force zone; has position, direction vector, and force magnitude
 - **Hostile Creature**: Enemy entity that patrols or chases player; has position, patrol path or AI behavior, collision boundary
 - **Level**: Container for complete cavern configuration; includes difficulty parameters, pearl count, enemy count, oxygen starting amount
+- **AudioManager**: Centralized audio system using Web Audio API for procedural sound generation (pearl chime, enemy hit, level complete, game over, oxygen warning beep)
+- **High Score**: Persistent player achievement data stored in LocalStorage tracking best level reached across game sessions
+- **FPS Counter**: Real-time performance monitoring display showing frames per second with color-coded performance indicators (green >55, yellow >30, red ≤30)
 
 ## Success Criteria *(mandatory)*
 
@@ -147,5 +162,70 @@ Each playthrough generates unique cavern layouts with increasing difficulty, pro
 - **SC-006**: Game loads and becomes playable within 3 seconds on standard broadband connection and adapts instantly to window resize
 - **SC-009**: Pearl tracking accurately counts collected pearls with no false completions (level ends only when all pearls collected)
 - **SC-010**: Game successfully deploys to production via automated CI/CD pipeline and is publicly accessible
+- **SC-011**: Difficulty progression is noticeable but balanced across 20+ levels (more enemies, less oxygen, tighter caves)
+- **SC-012**: All procedurally generated levels remain solvable (minimum 40% open space maintained at all difficulty levels)
 - **SC-007**: 90% of players successfully collect at least one pearl in their first attempt (achievable core mechanic)
 - **SC-008**: Players understand oxygen mechanic consequences within first 60 seconds of gameplay (clear feedback)
+- **SC-013**: Game maintains 60 FPS on modern browsers at fullscreen resolution with all systems active (enemies, currents, particles, audio)
+- **SC-014**: Oxygen warning audio provides clear escalating urgency feedback (beep interval decreases from 1.8s at 30% oxygen to 0.5s at 5% oxygen)
+- **SC-015**: Players can successfully pause, resume, and restart gameplay without state corruption or event listener duplication
+- **SC-016**: High scores persist correctly across browser sessions and game restarts
+- **SC-017**: All 332 automated unit tests pass with 100% reliability
+## Implementation Details *(completed features)*
+
+### Phase 7: Polish & User Experience
+
+**Status**: ✅ Complete
+
+#### Pause System
+- ESC key pauses/resumes gameplay
+- Semi-transparent overlay with "PAUSED" text
+- All game systems halt: oxygen depletion, enemy movement, player input
+- Camera-locked UI remains visible during pause
+
+#### Performance Monitoring
+- F key toggles real-time FPS counter
+- Color-coded performance indicators:
+  - Green: >55 FPS (excellent)
+  - Yellow: 30-55 FPS (acceptable)
+  - Red: <30 FPS (poor)
+- Fixed to top-right corner of viewport
+
+#### High Score Persistence
+- LocalStorage tracks best level reached
+- Displayed on menu screen: "Best Level: X"
+- Persists across browser sessions
+- Automatically updates when player reaches new highest level
+
+#### Procedural Audio System
+- **AudioManager** uses Web Audio API for zero-latency sound generation
+- No audio files required - all sounds procedurally generated
+- M key toggles audio mute/unmute
+- Sound effects:
+  - **Pearl Collection**: C5→E5→G5 ascending chime (0.3 volume)
+  - **Enemy Hit**: Descending sawtooth 150Hz→50Hz (0.4 volume)
+  - **Level Complete**: C4-E4-G4-C5 victory fanfare (0.25 volume)
+  - **Game Over**: G4→G3 sine descent (0.3 volume)
+  - **Oxygen Warning**: C5 beep with escalating frequency (0.06 volume)
+    - 30% oxygen: beeps every 1.8 seconds
+    - 15% oxygen: beeps every 1 second
+    - 5% oxygen: beeps every 0.5 seconds
+
+#### Event Listener Management
+- Automatic cleanup on scene restart prevents duplicate handlers
+- `.off()` calls before `.on()` registration in setupEventListeners()
+- Fixes pearl counter multiplication bug across level transitions
+
+#### Bug Fixes
+- Fixed `clamCount` variable reference error (→ `actualClamCount`)
+- Fixed hardcoded `totalPearls = 3` overriding procedural generation
+- Fixed `PLAYER_CONFIG.MAX_OXYGEN` undefined reference (→ `INITIAL_OXYGEN`)
+- Fixed `lastBeepTime` initialization for oxygen warning system
+- Fixed event listener duplication causing state corruption
+
+### Controls Reference
+- **WASD / Arrow Keys**: Move player
+- **Spacebar**: Interact with clams
+- **ESC**: Pause/Resume
+- **F**: Toggle FPS counter
+- **M**: Mute/Unmute audio

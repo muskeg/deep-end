@@ -191,6 +191,11 @@ export default class CollisionSystem {
     this.totalEnemyCollisions++;
     this.scene.events.emit('enemy-collision', enemy);
     
+    // Play sound effect
+    if (this.scene.audioManager) {
+      this.scene.audioManager.playEnemyHit();
+    }
+    
     // Trigger oxygen damage via OxygenSystem
     if (this.scene.oxygenSystem) {
       this.scene.oxygenSystem.handleEnemyCollision();
