@@ -15,6 +15,7 @@ export default class OxygenSystem {
     this.terrainMultiplier = 1.0;
     this.warningEmitted = false;
     this.gameOverEmitted = false;
+    this.lastBeepTime = -Infinity; // Start with -Infinity so first warning triggers immediately
     
     // Statistics
     this.totalOxygenConsumed = 0;
@@ -48,6 +49,13 @@ export default class OxygenSystem {
   }
   
   /**
+   * Set base depletion rate (for difficulty scaling)
+   */
+  setDepletionRate(rate) {
+    this.depletionRate = Math.max(0, rate);
+  }
+  
+  /**
    * Get current depletion rate
    */
   getDepletionRate() {
@@ -58,12 +66,25 @@ export default class OxygenSystem {
    * Check oxygen thresholds for warnings
    */
   checkThresholds() {
-    if (this.player.oxygen <= OXYGEN_CONFIG.WARNING_THRESHOLD && !this.warningEmitted) {
+    const currentTime = this.scene.time?.now ?? 0;
+    
+    if (this.player.oxygen <= OXYGEN_CONFIG.WARNING_THRESHOLD) {
+      // Calculate beep interval based on oxygen level (faster as oxygen decreases)
+      // At 30% oxygen: beep every 2 seconds
+      // At 15% oxygen: beep every 1 second
+      // At 5% oxygen: beep every 0.5 seconds
+      const oxygenPercent = this.player.oxygen / PLAYER_CONFIG.INITIAL_OXYGEN;
+      const beepInterval = Math.max(500, oxygenPercent * 6000); // 500ms to 1800ms
+      
+      if (currentTime - this.lastBeepTime >= beepInterval) {
+        this.scene.events.emit('oxygen-warning', this.player.oxygen);
+        this.lastBeepTime = currentTime;
+      }
       this.warningEmitted = true;
-      this.scene.events.emit('oxygen-warning', this.player.oxygen);
     } else if (this.player.oxygen > OXYGEN_CONFIG.WARNING_THRESHOLD && this.warningEmitted) {
       // Reset warning flag if oxygen increases above threshold
       this.warningEmitted = false;
+      this.lastBeepTime = -Infinity;
     }
   }
   
@@ -123,6 +144,7 @@ export default class OxygenSystem {
     this.isActive = true;
     this.warningEmitted = false;
     this.gameOverEmitted = false;
+    this.lastBeepTime = -Infinity;
     this.totalOxygenConsumed = 0;
     this.timeUnderwater = 0;
     this.terrainMultiplier = 1.0;

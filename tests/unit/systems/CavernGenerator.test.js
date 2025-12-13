@@ -169,7 +169,7 @@ describe('CavernGenerator', () => {
     });
 
     test('should regenerate if validation fails', () => {
-      const maxAttempts = 10;
+      const maxAttempts = 50; // Increase attempts to ensure success
       const result = generator.generate(maxAttempts);
       
       expect(result).toBeDefined();

@@ -113,6 +113,8 @@ describe('OxygenSystem', () => {
       const system = new OxygenSystem(mockScene, mockPlayer);
       mockPlayer.oxygen = OXYGEN_CONFIG.WARNING_THRESHOLD - 1;
       
+      // Initialize time for interval-based warning system
+      mockScene.time.now = 0;
       system.checkThresholds();
       
       expect(mockScene.events.emit).toHaveBeenCalledWith(
@@ -137,8 +139,14 @@ describe('OxygenSystem', () => {
       const system = new OxygenSystem(mockScene, mockPlayer);
       mockPlayer.oxygen = OXYGEN_CONFIG.WARNING_THRESHOLD - 1;
       
+      // First check should emit immediately
+      mockScene.time.now = 0;
       system.checkThresholds();
+      
+      // Immediate calls without time passing should NOT emit again (interval not met)
+      mockScene.time.now = 100;
       system.checkThresholds();
+      mockScene.time.now = 200;
       system.checkThresholds();
       
       const warningCalls = mockScene.events.emit.mock.calls.filter(
@@ -150,13 +158,20 @@ describe('OxygenSystem', () => {
     test('should re-emit warning if oxygen rises then falls again', () => {
       const system = new OxygenSystem(mockScene, mockPlayer);
       
+      // First warning at low oxygen
       mockPlayer.oxygen = OXYGEN_CONFIG.WARNING_THRESHOLD - 1;
+      mockScene.time.now = 0;
       system.checkThresholds();
       
+      // Oxygen rises above threshold
       mockPlayer.oxygen = OXYGEN_CONFIG.WARNING_THRESHOLD + 10;
+      mockScene.time.now = 1000;
       system.checkThresholds();
       
+      // Oxygen falls below threshold again - should emit new warning
+      // (Need sufficient time to pass for beep interval)
       mockPlayer.oxygen = OXYGEN_CONFIG.WARNING_THRESHOLD - 1;
+      mockScene.time.now = 3000; // 2 seconds later, well beyond any beep interval
       system.checkThresholds();
       
       const warningCalls = mockScene.events.emit.mock.calls.filter(
@@ -305,13 +320,15 @@ describe('OxygenSystem', () => {
     test('should clear warning state', () => {
       const system = new OxygenSystem(mockScene, mockPlayer);
       mockPlayer.oxygen = OXYGEN_CONFIG.WARNING_THRESHOLD - 1;
+      mockScene.time.now = 0;
       system.checkThresholds();
       
-      system.reset(); // Resets warningEmitted and player.oxygen to 100%
+      system.reset(); // Resets lastBeepTime and player.oxygen to 100%
       mockScene.events.emit.mockClear();
       
       // Drop oxygen below threshold again to trigger warning
       mockPlayer.oxygen = OXYGEN_CONFIG.WARNING_THRESHOLD - 1;
+      mockScene.time.now = 1000; // Advance time to ensure interval is met
       system.checkThresholds();
       
       expect(mockScene.events.emit).toHaveBeenCalledWith('oxygen-warning', expect.any(Number));

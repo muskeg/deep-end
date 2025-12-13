@@ -10,8 +10,16 @@ export default class CavernGenerator {
     this.width = width;
     this.height = height;
     this.initialDensity = density;
-    this.grid = [];
     this.rng = null; // Seeded random number generator
+    
+    // Initialize empty grid with correct dimensions
+    this.grid = [];
+    for (let y = 0; y < height; y++) {
+      this.grid[y] = [];
+      for (let x = 0; x < width; x++) {
+        this.grid[y][x] = 0;
+      }
+    }
   }
 
   /**
@@ -207,7 +215,7 @@ export default class CavernGenerator {
    * @param {number} seed - Optional seed for deterministic generation
    * @returns {number[][]} Generated grid (0=open, 1=wall)
    */
-  generate(maxAttempts = 10, seed = null) {
+  generate(maxAttempts = 50, seed = null) {
     if (seed !== null) {
       this.setSeed(seed);
     }

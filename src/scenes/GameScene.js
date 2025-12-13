@@ -12,8 +12,12 @@ import OxygenSystem from '../systems/OxygenSystem.js';
 import CurrentSystem from '../systems/CurrentSystem.js';
 import CollisionSystem from '../systems/CollisionSystem.js';
 import CavernGenerator from '../systems/CavernGenerator.js';
+import DifficultySystem from '../systems/DifficultySystem.js';
+import ScoreManager from '../utils/ScoreManager.js';
+import AudioManager from '../utils/AudioManager.js';
 import OxygenMeter from '../ui/OxygenMeter.js';
 import ScoreDisplay from '../ui/ScoreDisplay.js';
+import FPSDisplay from '../ui/FPSDisplay.js';
 
 /**
  * GameScene - Main gameplay scene
@@ -29,6 +33,7 @@ export default class GameScene extends Phaser.Scene {
     this.currentLevel = data.level || 1;
     this.currentScore = data.score || 0;
     this.gameOver = false;
+    this.isPaused = false;
     
     // Pearl tracking (will be set by generateProceduralCavern)
     this.totalPearls = 0;
@@ -69,8 +74,22 @@ export default class GameScene extends Phaser.Scene {
     // Create input handler
     this.inputHandler = new InputHandler(this);
     
+    // Create score manager
+    this.scoreManager = new ScoreManager();
+    
+    // Create audio manager
+    this.audioManager = new AudioManager(this);
+    this.audioManager.initialize();
+    
     // Create oxygen system
     this.oxygenSystem = new OxygenSystem(this, this.player);
+    
+    // Create difficulty system
+    this.difficultySystem = new DifficultySystem();
+    const difficulty = this.difficultySystem.getDifficultyConfig(this.currentLevel);
+    
+    // Apply oxygen depletion rate from difficulty
+    this.oxygenSystem.setDepletionRate(difficulty.oxygenRate);
     
     // Create current system
     this.currentSystem = new CurrentSystem(this, this.player);
@@ -86,17 +105,33 @@ export default class GameScene extends Phaser.Scene {
     this.scoreDisplay.setScrollFactor(0);
     this.scoreDisplay.updateLevel(this.currentLevel);
     
+    // FPS display (toggle with F key)
+    this.fpsDisplay = new FPSDisplay(this);
+    
     // Generate procedural cavern
     this.generateProceduralCavern();
     
     // Update pearl count after cavern generation
     this.scoreDisplay.updatePearlCount(this.collectedPearls, this.totalPearls);
     
+    // Create pause overlay (hidden by default)
+    this.createPauseOverlay();
+    
     // Setup event listeners
     this.setupEventListeners();
     
-    // ESC to return to menu
-    this.inputHandler.onPause(() => this.returnToMenu());
+    // ESC to toggle pause (using direct keyboard listener)
+    this.input.keyboard.on('keydown', (event) => {
+      if (event.key === 'Escape' || event.keyCode === 27) {
+        this.togglePause();
+      }
+    });
+    
+    // M key to toggle audio
+    this.input.keyboard.on('keydown-M', () => {
+      const enabled = this.audioManager.toggle();
+      console.log(`Audio ${enabled ? 'enabled' : 'muted'}`);
+    });
     
     // Handle window resize
     this.scale.on('resize', this.resize, this);
@@ -153,12 +188,14 @@ export default class GameScene extends Phaser.Scene {
     // Shuffle valid positions
     const shuffled = validPositions.sort(() => Math.random() - 0.5);
     
-    // Place 3-5 clams
-    const clamCount = 3 + Math.floor(this.currentLevel / 2);
-    const actualClamCount = Math.min(clamCount, shuffled.length);
+    // Get difficulty-scaled counts
+    const difficulty = this.difficultySystem.getDifficultyConfig(this.currentLevel);
+    
+    // Place clams (difficulty-scaled)
+    const actualClamCount = Math.min(difficulty.clams, shuffled.length);
     this.totalPearls = actualClamCount;
     this.collectedPearls = 0;
-    console.log(`Level ${this.currentLevel}: Generating ${actualClamCount} clams`);
+    console.log(`Level ${this.currentLevel}: Generating ${actualClamCount} clams (difficulty: ${difficulty.clams})`);
     
     for (let i = 0; i < actualClamCount; i++) {
       const pos = shuffled[i];
@@ -171,8 +208,8 @@ export default class GameScene extends Phaser.Scene {
       this.clams.push(clam);
     }
     
-    // Place 2-3 water currents
-    const currentCount = 2 + Math.floor(this.currentLevel / 3);
+    // Place water currents (difficulty-scaled)
+    const currentCount = difficulty.currents;
     for (let i = actualClamCount; i < actualClamCount + currentCount && i < shuffled.length; i++) {
       const pos = shuffled[i];
       const directions = [
@@ -196,7 +233,7 @@ export default class GameScene extends Phaser.Scene {
     
     // Place 1-2 jellyfish
     const jellyfishCount = 1 + Math.floor(this.currentLevel / 2);
-    for (let i = clamCount + currentCount; i < clamCount + currentCount + jellyfishCount && i < shuffled.length - 4; i++) {
+    for (let i = actualClamCount + currentCount; i < actualClamCount + currentCount + jellyfishCount && i < shuffled.length - 4; i++) {
       const startPos = shuffled[i];
       const waypoints = [
         shuffled[i],
@@ -219,18 +256,25 @@ export default class GameScene extends Phaser.Scene {
       this.collisionSystem.addEnemy(jellyfish);
     }
     
-    // Place 1 eel
-    if (this.currentLevel >= 2 && shuffled.length > clamCount + currentCount + jellyfishCount) {
-      const eelPos = shuffled[shuffled.length - 1];
-      const eel = new Eel(
-        this,
-        eelPos.x * tileSize + tileSize / 2,
-        eelPos.y * tileSize + tileSize / 2,
-        this.player,
-        { x: eelPos.x * tileSize + tileSize / 2, y: eelPos.y * tileSize + tileSize / 2 }
-      );
-      this.enemies.push(eel);
-      this.collisionSystem.addEnemy(eel);
+    // Place eels (difficulty-scaled, starts at level 2)
+    const eelCount = difficulty.eels;
+    if (eelCount > 0 && shuffled.length > actualClamCount + currentCount + jellyfishCount) {
+      const eelStartIndex = shuffled.length - eelCount;
+      for (let i = 0; i < eelCount; i++) {
+        const eelIndex = Math.max(0, eelStartIndex + i);
+        if (eelIndex < shuffled.length) {
+          const eelPos = shuffled[eelIndex];
+          const eel = new Eel(
+            this,
+            eelPos.x * tileSize + tileSize / 2,
+            eelPos.y * tileSize + tileSize / 2,
+            this.player,
+            { x: eelPos.x * tileSize + tileSize / 2, y: eelPos.y * tileSize + tileSize / 2 }
+          );
+          this.enemies.push(eel);
+          this.collisionSystem.addEnemy(eel);
+        }
+      }
     }
   }
 
@@ -300,19 +344,23 @@ export default class GameScene extends Phaser.Scene {
     const eel = new Eel(this, width * 0.1, height * 0.9, this.player, eelHidingPosition);
     this.enemies.push(eel);
     this.collisionSystem.addEnemy(eel);
-    
-    // Total pearls for tracking
-    this.totalPearls = 3;
-    this.collectedPearls = 0;
   }
   
   /**
    * Setup event listeners
    */
   setupEventListeners() {
+    // Remove any existing listeners first (prevent duplicates on restart)
+    this.events.off('pearl-collected');
+    this.events.off('pearl-dispensed');
+    this.events.off('oxygen-warning');
+    this.events.off('oxygen-depleted');
+    this.events.off('game-over');
+    
     // Pearl collection
     this.events.on('pearl-collected', (value) => {
       this.collectedPearls++;
+      this.audioManager.playPearlCollect();
       console.log(`Pearl collected! Count: ${this.collectedPearls}/${this.totalPearls}`);
       this.scoreDisplay.updatePearlCount(this.collectedPearls, this.totalPearls);
       
@@ -338,6 +386,7 @@ export default class GameScene extends Phaser.Scene {
     // Oxygen warnings
     this.events.on('oxygen-warning', () => {
       this.oxygenMeter.showWarning();
+      this.audioManager.playOxygenWarning();
     });
     
     // Oxygen depleted
@@ -352,7 +401,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    if (this.gameOver) return;
+    if (this.gameOver || this.isPaused) return;
     
     // Get input
     const input = this.inputHandler.getMovementInput();
@@ -379,6 +428,7 @@ export default class GameScene extends Phaser.Scene {
     
     // Update UI
     this.oxygenMeter.update(this.player.oxygen);
+    this.fpsDisplay.update(time, delta);
     
     // Update player visuals
     this.player.update(time, delta);
@@ -456,13 +506,106 @@ export default class GameScene extends Phaser.Scene {
     if (this.gameOver) return;
     this.gameOver = true;
     
-    this.cameras.main.fadeOut(500, 0, 0, 0);
-    this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.scene.start(SCENES.GAME_OVER, {
-        victory: victory,
-        level: this.currentLevel,
-        score: this.currentScore
+    // Update high score
+    const isNewHigh = this.scoreManager.updateHighScore(this.currentLevel);
+    if (isNewHigh) {
+      console.log(`New high score! Level ${this.currentLevel}`);
+    }
+    
+    console.log(`Level ${this.currentLevel} complete: ${victory ? 'Victory!' : 'Game Over'}`);
+    
+    if (victory) {
+      // Play level complete sound
+      this.audioManager.playLevelComplete();
+      
+      // Level complete - progress to next level
+      this.cameras.main.fadeOut(500, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        // Restart GameScene with next level
+        this.scene.restart({
+          level: this.currentLevel + 1,
+          score: this.currentScore
+        });
       });
+    } else {
+      // Play game over sound
+      this.audioManager.playGameOver();
+      
+      // Game over - show game over screen
+      this.cameras.main.fadeOut(500, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        this.scene.start(SCENES.GAME_OVER, {
+          victory: false,
+          level: this.currentLevel,
+          score: this.currentScore
+        });
+      });
+    }
+  }
+
+  /**
+   * Create pause overlay UI
+   */
+  createPauseOverlay() {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // Semi-transparent overlay
+    this.pauseOverlay = this.add.rectangle(
+      width / 2, 
+      height / 2, 
+      width, 
+      height, 
+      0x000000, 
+      0.7
+    );
+    this.pauseOverlay.setScrollFactor(0);
+    this.pauseOverlay.setDepth(2000);
+    this.pauseOverlay.setVisible(false);
+    
+    // "PAUSED" text
+    this.pauseText = this.add.text(width / 2, height / 2 - 40, 'PAUSED', {
+      font: 'bold 64px monospace',
+      fill: '#00ccff',
+      stroke: '#000000',
+      strokeThickness: 6
     });
+    this.pauseText.setOrigin(0.5);
+    this.pauseText.setScrollFactor(0);
+    this.pauseText.setDepth(2001);
+    this.pauseText.setVisible(false);
+    
+    // Resume instructions
+    this.pauseInstructions = this.add.text(width / 2, height / 2 + 40, 'Press ESC to resume', {
+      font: '24px monospace',
+      fill: '#ffffff'
+    });
+    this.pauseInstructions.setOrigin(0.5);
+    this.pauseInstructions.setScrollFactor(0);
+    this.pauseInstructions.setDepth(2001);
+    this.pauseInstructions.setVisible(false);
+  }
+
+  /**
+   * Toggle pause state
+   */
+  togglePause() {
+    if (this.gameOver) return;
+    
+    this.isPaused = !this.isPaused;
+    
+    if (this.isPaused) {
+      // Pause the game
+      this.physics.pause();
+      this.pauseOverlay.setVisible(true);
+      this.pauseText.setVisible(true);
+      this.pauseInstructions.setVisible(true);
+    } else {
+      // Resume the game
+      this.physics.resume();
+      this.pauseOverlay.setVisible(false);
+      this.pauseText.setVisible(false);
+      this.pauseInstructions.setVisible(false);
+    }
   }
 }

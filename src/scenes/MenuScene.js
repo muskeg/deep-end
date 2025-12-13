@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SCENES, COLORS } from '../utils/Constants.js';
+import ScoreManager from '../utils/ScoreManager.js';
 
 /**
  * MenuScene - Main menu with start game option
@@ -13,6 +14,9 @@ export default class MenuScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
+    // Create score manager
+    const scoreManager = new ScoreManager();
+    
     // Title
     const title = this.add.text(width / 2, height / 3, 'DEEP END', {
       font: 'bold 42px monospace',
@@ -21,6 +25,16 @@ export default class MenuScene extends Phaser.Scene {
       strokeThickness: 4
     });
     title.setOrigin(0.5);
+    
+    // High score display
+    const highScoreText = scoreManager.getHighScoreText();
+    const highScore = this.add.text(width / 2, height / 3 + 50, highScoreText, {
+      font: '20px monospace',
+      fill: '#ffdd00',
+      stroke: '#000000',
+      strokeThickness: 2
+    });
+    highScore.setOrigin(0.5);
     
     // Start button
     const startButton = this.add.text(width / 2, height / 2 + 40, 'START GAME', {

@@ -24,6 +24,9 @@ export default class InputHandler {
     this.justPressed = {
       interact: false
     };
+    
+    // Track callbacks for cleanup
+    this.pauseCallback = null;
   }
   
   /**
@@ -74,7 +77,8 @@ export default class InputHandler {
    * Register pause callback
    */
   onPause(callback) {
-    this.scene.input.keyboard.once('keydown-ESC', callback);
+    this.pauseCallback = callback;
+    this.scene.input.keyboard.on('keydown-ESCAPE', callback);
   }
   
   /**
@@ -192,6 +196,9 @@ export default class InputHandler {
   cleanup() {
     if (this.interactCallback) {
       this.scene.input.keyboard.off('keydown-SPACE', this.interactCallback);
+    }
+    if (this.pauseCallback) {
+      this.scene.input.keyboard.off('keydown-ESCAPE', this.pauseCallback);
     }
   }
 }
