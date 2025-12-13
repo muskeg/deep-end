@@ -55,11 +55,23 @@ export default class CavernGenerator {
   generateInitialGrid(density = this.initialDensity) {
     this.grid = [];
     
+    // Define water surface zone (top 3% is surface, next 7% is wall-free zone = 10% total)
+    const surfaceZoneHeight = Math.floor(this.height * 0.03);
+    const wallFreeZoneHeight = Math.floor(this.height * 0.10); // 10% wall-free zone
+    
     for (let y = 0; y < this.height; y++) {
       this.grid[y] = [];
       for (let x = 0; x < this.width; x++) {
-        // Force borders to be walls
-        if (x === 0 || x === this.width - 1 || y === 0 || y === this.height - 1) {
+        // Water surface + wall-free zone: always open (no walls near top)
+        if (y < wallFreeZoneHeight) {
+          this.grid[y][x] = 0;
+        }
+        // Force left and right borders to be walls
+        else if (x === 0 || x === this.width - 1) {
+          this.grid[y][x] = 1;
+        }
+        // Force bottom border to be wall
+        else if (y === this.height - 1) {
           this.grid[y][x] = 1;
         } else {
           // Random wall based on density
@@ -102,14 +114,22 @@ export default class CavernGenerator {
    * @param {number} iterations - Number of smoothing passes
    */
   smoothGrid(iterations = CAVERN_CONFIG.ITERATIONS) {
+    const wallFreeZoneHeight = Math.floor(this.height * 0.10); // 10% wall-free zone
+    
     for (let i = 0; i < iterations; i++) {
       const newGrid = [];
       
       for (let y = 0; y < this.height; y++) {
         newGrid[y] = [];
         for (let x = 0; x < this.width; x++) {
-          // Keep borders as walls
-          if (x === 0 || x === this.width - 1 || y === 0 || y === this.height - 1) {
+          // Keep wall-free zone always open (top 10%)
+          if (y < wallFreeZoneHeight) {
+            newGrid[y][x] = 0;
+            continue;
+          }
+          
+          // Keep left, right, and bottom borders as walls
+          if (x === 0 || x === this.width - 1 || y === this.height - 1) {
             newGrid[y][x] = 1;
             continue;
           }

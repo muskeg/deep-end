@@ -41,6 +41,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     
     // Visual representation (placeholder)
     this.graphics = scene.add.graphics();
+    this.graphics.setPipeline('Light2D'); // Enable lighting
     this.updateVisuals();
   }
   

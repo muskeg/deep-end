@@ -15,6 +15,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     
     // Visual representation (circle for now)
     this.graphics = scene.add.graphics();
+    this.graphics.setPipeline('Light2D'); // Enable lighting
     this.updateVisuals();
     
     // Physics properties

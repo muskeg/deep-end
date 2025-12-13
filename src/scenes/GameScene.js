@@ -51,18 +51,65 @@ export default class GameScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
-    // Define world size (3x larger than viewport)
-    this.worldWidth = width * 3;
-    this.worldHeight = height * 3;
+    // Define world size: fixed width for 4K, 10x deeper vertically
+    this.worldWidth = 3840; // 4K width (fixed across all devices)
+    this.worldHeight = height * 10; // 10x deeper than viewport
     
     // Set world bounds
     this.physics.world.setBounds(0, 0, this.worldWidth, this.worldHeight);
     
+    // Store surface height for collision checks
+    this.surfaceHeight = height * 0.03;
+    
+    // Enable Phaser's built-in lighting system
+    this.lights.enable();
+    this.lights.setAmbientColor(0x4488aa); // Blue-tinted ambient light (sunlight through water)
+    
     // Fade in effect
     this.cameras.main.fadeIn(500, 0, 0, 0);
     
-    // Background (store reference for resize)
-    this.background = this.add.rectangle(this.worldWidth / 2, this.worldHeight / 2, this.worldWidth, this.worldHeight, COLORS.WATER);
+    // Create single color background
+    this.background = this.add.rectangle(
+      this.worldWidth / 2,
+      this.worldHeight / 2,
+      this.worldWidth,
+      this.worldHeight,
+      0x003d66 // Single water color
+    );
+    this.background.setDepth(-2);
+    this.background.setPipeline('Light2D'); // Enable lighting on background
+    
+    // Create depth-based ambient darkness (using Phaser lights)
+    this.createDepthDarknessOverlay();
+    
+    // Add water surface visual (lighter blue line at the top)
+    const surfaceHeight = this.worldHeight * 0.03;
+    this.waterSurface = this.add.rectangle(
+      this.worldWidth / 2, 
+      surfaceHeight / 2, 
+      this.worldWidth, 
+      surfaceHeight, 
+      0x0066aa, // Lighter blue for surface
+      0.3 // Semi-transparent
+    );
+    this.waterSurface.setDepth(-1); // Behind everything except background
+    this.waterSurface.setPipeline('Light2D'); // Enable lighting
+    
+    // Surface line indicator
+    this.surfaceLine = this.add.line(
+      0, 
+      surfaceHeight, 
+      0, 
+      0, 
+      this.worldWidth, 
+      0, 
+      0x00ccff, // Cyan surface line
+      0.5
+    );
+    this.surfaceLine.setOrigin(0, 0);
+    this.surfaceLine.setLineWidth(3);
+    this.surfaceLine.setDepth(10);
+    this.surfaceLine.setPipeline('Light2D'); // Enable lighting
     
     // Create player at center of world
     this.player = new Player(this, this.worldWidth / 2, this.worldHeight / 2);
@@ -136,6 +183,45 @@ export default class GameScene extends Phaser.Scene {
     // Handle window resize
     this.scale.on('resize', this.resize, this);
   }
+
+  /**
+   * Create depth-based darkness overlay (smooth gradient with exponential darkening)
+   */
+  createDepthDarknessOverlay() {
+    // Don't use overlay - use lighting system ambient color changes instead
+    // The ambient light will get darker as you go deeper
+    
+    // Create player light using Phaser's lighting system
+    this.createPlayerLight();
+  }
+  
+  /**
+   * Create circular light around player using Phaser's lighting system
+   */
+  createPlayerLight() {
+    // Add broad sunlight sources above the scene (outside viewport)
+    const surfaceY = -200; // Above the top of the world
+    const numSunLights = 3; // Fewer, broader lights
+    for (let i = 0; i < numSunLights; i++) {
+      const x = (this.worldWidth / numSunLights) * (i + 0.5);
+      const sunLight = this.lights.addLight(
+        x,
+        surfaceY,
+        2000 // Very large radius to reach down into scene
+      );
+      sunLight.setColor(0xaaddff); // Bright blue-white sunlight
+      sunLight.setIntensity(2); // Moderate intensity for natural look
+    }
+    
+    // Add point light that follows player
+    this.playerLight = this.lights.addLight(
+      this.worldWidth / 2, 
+      this.worldHeight / 2, 
+      300 // Light radius - increased for better visibility
+    );
+    this.playerLight.setColor(0xffffcc); // Warm yellow light from player's equipment
+    this.playerLight.setIntensity(3); // Higher brightness for equipment light
+  }
   
   /**
    * Generate procedural cavern using Cellular Automata
@@ -160,15 +246,33 @@ export default class GameScene extends Phaser.Scene {
       }
     }
     
+    // Create invisible walls at water surface to prevent entities from going above
+    const surfaceGridY = Math.floor(gridHeight * 0.03);
+    for (let x = 0; x < gridWidth; x++) {
+      const surfaceWall = this.add.rectangle(
+        x * tileSize + tileSize / 2,
+        surfaceGridY * tileSize + tileSize / 2,
+        tileSize,
+        tileSize,
+        0x000000,
+        0 // Invisible
+      );
+      this.physics.add.existing(surfaceWall, true); // true = static body
+      this.collisionSystem.addWall(surfaceWall.body);
+    }
+    
     // Get open positions for entity placement
     const openPositions = generator.getOpenPositions();
     
-    // Place player at center first
+    // Filter out positions in surface zone (top 3%)
+    const underwaterPositions = openPositions.filter(pos => pos.y > surfaceGridY);
+    
+    // Place player just below water surface (3% from top)
+    const surfaceY = surfaceGridY + 2; // Just below surface
     const centerX = gridWidth / 2;
-    const centerY = gridHeight / 2;
-    const startPos = openPositions.find(pos => 
-      Math.abs(pos.x - centerX) < 5 && Math.abs(pos.y - centerY) < 5
-    ) || openPositions[0];
+    const startPos = underwaterPositions.find(pos => 
+      Math.abs(pos.x - centerX) < 5 && pos.y >= surfaceY && pos.y < surfaceY + 10
+    ) || underwaterPositions.find(pos => pos.y >= surfaceY && pos.y < surfaceY + 10) || underwaterPositions[0];
     
     this.player.setPosition(
       startPos.x * tileSize + tileSize / 2,
@@ -178,7 +282,7 @@ export default class GameScene extends Phaser.Scene {
     // Filter positions to only include those far enough from player but not too far
     const minDistance = 10; // At least 10 tiles away
     const maxDistance = Math.min(gridWidth, gridHeight) / 2; // Not too far
-    const validPositions = openPositions.filter(pos => {
+    const validPositions = underwaterPositions.filter(pos => {
       const dx = pos.x - startPos.x;
       const dy = pos.y - startPos.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -446,6 +550,9 @@ export default class GameScene extends Phaser.Scene {
       }
     });
     
+    // Update depth darkness effect to follow camera
+    this.updateDepthDarkness();
+    
     // Check for clam interaction
     if (this.inputHandler.isInteractJustPressed()) {
       this.checkClamInteraction();
@@ -463,6 +570,15 @@ export default class GameScene extends Phaser.Scene {
         // Pearl is automatically added to scene through event listener
       }
     });
+  }
+  
+  /**
+   * Update depth darkness effect - move player light to follow player
+   */
+  updateDepthDarkness() {
+    if (this.playerLight && this.player) {
+      this.playerLight.setPosition(this.player.x, this.player.y);
+    }
   }
 
   returnToMenu() {

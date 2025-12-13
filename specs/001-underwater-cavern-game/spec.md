@@ -2,8 +2,8 @@
 
 **Feature Branch**: `001-underwater-cavern-game`  
 **Created**: 2025-12-12  
-**Updated**: 2025-12-12  
-**Status**: Production Ready - All Features Complete  
+**Updated**: 2025-12-13  
+**Status**: Production Ready - Phase 8 Complete (Map Redesign & Lighting)  
 **Live Demo**: https://muskeg.github.io/deep-end/  
 **Test Suite**: 332/332 tests passing (100%)  
 **Input**: User description: "Action arcade game where player navigates procedurally generated underwater caverns collecting pearls with oxygen-based time limit"
@@ -135,6 +135,14 @@ Each playthrough generates unique cavern layouts with increasing difficulty, pro
 - **FR-036**: System MUST allow audio mute/unmute toggle via M key
 - **FR-037**: System MUST clean up event listeners on scene restart to prevent duplicate event handling and state corruption
 - **FR-038**: System MUST use PLAYER_CONFIG.INITIAL_OXYGEN constant consistently for oxygen calculations (avoiding undefined MAX_OXYGEN references)
+- **FR-039**: System MUST render game world with fixed width of 3840px (4K resolution) and depth of 10x viewport height for deep vertical exploration
+- **FR-040**: System MUST maintain wall-free zone at top 10% of map height below water surface for open swimming area
+- **FR-041**: System MUST prevent entities (player, enemies, clams) from spawning or moving above 3% surface line using invisible physics colliders
+- **FR-042**: System MUST implement Phaser Light2D pipeline on all game objects (walls, entities, background) for lighting effects
+- **FR-043**: System MUST set ambient light to blue-tinted color (0x4488aa) to simulate sunlight filtering through water
+- **FR-044**: System MUST place sunlight sources above viewport (Y = -200) with 2000px radius to create natural top-down illumination
+- **FR-045**: System MUST provide player equipment light (300px radius, warm yellow 0xffffcc, intensity 3) that follows player position
+- **FR-046**: System MUST filter entity spawn positions to exclude surface zone (top 3%) ensuring underwater placement only
 
 ### Key Entities
 
@@ -148,6 +156,8 @@ Each playthrough generates unique cavern layouts with increasing difficulty, pro
 - **Level**: Container for complete cavern configuration; includes difficulty parameters, pearl count, enemy count, oxygen starting amount
 - **AudioManager**: Centralized audio system using Web Audio API for procedural sound generation (pearl chime, enemy hit, level complete, game over, oxygen warning beep)
 - **High Score**: Persistent player achievement data stored in LocalStorage tracking best level reached across game sessions
+- **Lighting System**: Phaser Light2D pipeline providing ambient lighting, sunlight sources, and player equipment light for visibility control
+- **Map Dimensions**: Fixed 3840px width (4K) × 10x viewport height for consistent deep vertical exploration experience
 - **FPS Counter**: Real-time performance monitoring display showing frames per second with color-coded performance indicators (green >55, yellow >30, red ≤30)
 
 ## Success Criteria *(mandatory)*

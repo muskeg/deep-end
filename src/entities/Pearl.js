@@ -19,6 +19,7 @@ export default class Pearl extends Phaser.Physics.Arcade.Sprite {
     
     // Graphics
     this.graphics = scene.add.graphics();
+    this.graphics.setPipeline('Light2D'); // Enable lighting
     this.updateVisuals();
     
     // Physics

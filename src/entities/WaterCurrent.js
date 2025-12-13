@@ -26,6 +26,7 @@ export default class WaterCurrent extends Phaser.GameObjects.GameObject {
     
     // Visual representation
     this.graphics = scene.add.graphics();
+    this.graphics.setPipeline('Light2D'); // Enable lighting
     this.updateVisuals();
     
     scene.add.existing(this);

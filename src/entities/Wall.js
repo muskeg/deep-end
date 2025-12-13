@@ -18,6 +18,9 @@ export default class Wall extends Phaser.GameObjects.Graphics {
     
     scene.add.existing(this);
     
+    // Enable lighting on walls
+    this.setPipeline('Light2D');
+    
     // Draw wall tile
     this.draw();
     
