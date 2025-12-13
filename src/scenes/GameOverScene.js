@@ -41,7 +41,6 @@ export default class GameOverScene extends Phaser.Scene {
     const statsY = height / 2 - 20;
     const stats = [
       `Level: ${this.level}`,
-      `Score: ${this.score}`,
       '',
       this.victory ? 'All pearls collected!' : 'Try again!'
     ];

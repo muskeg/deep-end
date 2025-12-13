@@ -22,8 +22,10 @@ export default class OxygenMeter {
     
     // Text label
     this.text = scene.add.text(x + 10, y + 7, 'O2: 100%', {
-      font: '16px monospace',
-      fill: '#ffffff'
+      font: 'bold 16px monospace',
+      fill: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3
     });
     this.text.setDepth(1002);
     
@@ -63,19 +65,6 @@ export default class OxygenMeter {
     
     // Update text
     this.text.setText(`O2: ${Math.round(this.currentOxygen)}%`);
-    this.text.setColor(this.getTextColor());
-  }
-  
-  /**
-   * Get text color based on oxygen level
-   */
-  getTextColor() {
-    if (this.currentOxygen <= OXYGEN_CONFIG.WARNING_THRESHOLD) {
-      return '#ff0000';
-    } else if (this.currentOxygen <= OXYGEN_CONFIG.WARNING_THRESHOLD * 2) {
-      return '#ffaa00';
-    }
-    return '#00ff00';
   }
   
   /**

@@ -1,9 +1,13 @@
-# Feature Specification: Underwater Cavern Exploration Game
+# Feature Specification: Deep End
 
 **Feature Branch**: `001-underwater-cavern-game`  
 **Created**: 2025-12-12  
-**Status**: Draft  
+**Updated**: 2025-12-12  
+**Status**: Implemented  
 **Input**: User description: "Action arcade game where player navigates procedurally generated underwater caverns collecting pearls with oxygen-based time limit"
+
+**Game Title**: Deep End  
+**Display**: Fullscreen responsive browser game
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -18,10 +22,10 @@ Player controls a diver character using keyboard controls to navigate through a 
 **Acceptance Scenarios**:
 
 1. **Given** game starts, **When** player presses arrow keys or WASD, **Then** character moves in the corresponding direction through the cavern
-2. **Given** character is near a clam, **When** player presses spacebar, **Then** clam opens and pearl is collected, score increases
+2. **Given** character is near a clam, **When** player presses spacebar, **Then** clam opens and pearl is collected, pearl count increases
 3. **Given** game is running, **When** time passes, **Then** oxygen level depletes gradually and is displayed on screen
-4. **Given** oxygen reaches zero, **When** oxygen depletes completely, **Then** game ends and displays final score
-5. **Given** player collects all pearls in level, **When** last pearl is collected, **Then** level completion is displayed with total time and score
+4. **Given** oxygen reaches zero, **When** oxygen depletes completely, **Then** game ends and displays final level reached
+5. **Given** player collects all pearls in level, **When** last pearl is collected, **Then** level completion is displayed and next level begins
 
 ---
 
@@ -96,9 +100,9 @@ Each playthrough generates unique cavern layouts with increasing difficulty, pro
 - **FR-004**: System MUST display player character sprite that animates during movement
 - **FR-005**: System MUST display oxygen level as a visible meter or percentage that depletes over time
 - **FR-006**: System MUST calculate oxygen depletion at consistent rate (e.g., 1% per second baseline)
-- **FR-007**: System MUST track and display current score based on pearls collected
-- **FR-008**: System MUST place clams containing pearls at procedurally generated locations within the cavern
-- **FR-009**: System MUST trigger level completion when all pearls are collected
+- **FR-007**: System MUST track and display current level number and pearl collection progress (e.g., "Pearls: 2/5")
+- **FR-008**: System MUST place clams containing pearls at procedurally generated locations within the cavern and track pearl count accurately (one pearl per clam)
+- **FR-009**: System MUST trigger level completion only when all pearls from all clams are collected (validated count)
 - **FR-010**: System MUST trigger game over when oxygen reaches zero
 - **FR-011**: System MUST generate water current zones that apply directional force to player character
 - **FR-012**: System MUST detect collision between player character and cavern walls, preventing movement through solid terrain
@@ -109,16 +113,19 @@ Each playthrough generates unique cavern layouts with increasing difficulty, pro
 - **FR-017**: System MUST validate procedural levels to guarantee all pearls are accessible before gameplay starts
 - **FR-018**: System MUST increase difficulty parameters (enemy count, oxygen rate, cavern complexity) with each completed level
 - **FR-019**: System MUST provide pause functionality that halts oxygen depletion and enemy movement
-- **FR-020**: System MUST display UI elements including oxygen meter, score, level number, and controls help
+- **FR-020**: System MUST display UI elements including oxygen meter with high-contrast white text (with black stroke for readability), level number, and pearl count progress (e.g., "Pearls: 2/5")
 - **FR-021**: System MUST provide visual/audio feedback when pearls are collected, oxygen is low, or game ends
 - **FR-022**: System MUST allow player to restart game after game over or level completion
+- **FR-023**: System MUST render fullscreen responsive canvas that adapts to browser window size
+- **FR-024**: System MUST provide scrollable game world (3x viewport size) with camera following player
+- **FR-025**: System MUST keep UI elements (oxygen meter, level display, pearl count) fixed to camera view
 
 ### Key Entities
 
-- **Player Character**: The diver avatar controlled by player input; has position, velocity, oxygen level, score, and collision boundary
-- **Cavern**: The procedurally generated environment; consists of navigable water areas and solid wall boundaries
-- **Clam**: Interactive collectible containing pearls; has position, open/closed state, and pearl value
-- **Pearl**: Collectible item that increases score; contained within clams
+- **Player Character**: The diver avatar controlled by player input; has position, velocity, oxygen level, and collision boundary
+- **Cavern**: The procedurally generated environment; consists of navigable water areas and solid wall boundaries; generated using Cellular Automata algorithm
+- **Clam**: Interactive collectible containing pearls; has position, open/closed state; 3-5 clams spawn per level
+- **Pearl**: Collectible item dispensed from clams; all pearls must be collected to complete level
 - **Oxygen Tank**: Time/resource mechanic represented as depleting percentage; determines available gameplay time
 - **Water Current**: Environmental force zone; has position, direction vector, and force magnitude
 - **Hostile Creature**: Enemy entity that patrols or chases player; has position, patrol path or AI behavior, collision boundary
@@ -130,9 +137,9 @@ Each playthrough generates unique cavern layouts with increasing difficulty, pro
 
 - **SC-001**: Players can complete basic movement and pearl collection within 30 seconds of first launching the game (intuitive controls)
 - **SC-002**: Average first-level completion time is between 45-90 seconds for new players (balanced difficulty)
-- **SC-003**: Game renders at minimum 30 frames per second on standard modern browsers (Chrome, Firefox, Safari) without performance degradation
-- **SC-004**: 80% of procedurally generated levels are completable within the oxygen time limit for skilled players (fair generation algorithm)
-- **SC-005**: Players can distinguish between safe and dangerous areas within 5 seconds of viewing a new level (clear visual design)
-- **SC-006**: Game loads and becomes playable within 3 seconds on standard broadband connection (fast startup)
+- **SC-003**: Game renders at minimum 30 frames per second on standard modern browsers (Chrome, Firefox, Safari) at any window size without performance degradation
+- **SC-004**: 80% of procedurally generated levels are completable within the oxygen time limit for skilled players (fair generation algorithm ensures 50%+ navigable space)
+- **SC-005**: Players can distinguish between safe and dangerous areas within 5 seconds of viewing a new level (clear visual design with cyan player, gray walls, distinct entity colors)
+- **SC-006**: Game loads and becomes playable within 3 seconds on standard broadband connection and adapts instantly to window resize
 - **SC-007**: 90% of players successfully collect at least one pearl in their first attempt (achievable core mechanic)
 - **SC-008**: Players understand oxygen mechanic consequences within first 60 seconds of gameplay (clear feedback)

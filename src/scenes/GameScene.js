@@ -30,6 +30,10 @@ export default class GameScene extends Phaser.Scene {
     this.currentScore = data.score || 0;
     this.gameOver = false;
     
+    // Pearl tracking (will be set by generateProceduralCavern)
+    this.totalPearls = 0;
+    this.collectedPearls = 0;
+    
     // Entity arrays
     this.walls = [];
     this.clams = [];
@@ -84,6 +88,9 @@ export default class GameScene extends Phaser.Scene {
     
     // Generate procedural cavern
     this.generateProceduralCavern();
+    
+    // Update pearl count after cavern generation
+    this.scoreDisplay.updatePearlCount(this.collectedPearls, this.totalPearls);
     
     // Setup event listeners
     this.setupEventListeners();
@@ -148,10 +155,12 @@ export default class GameScene extends Phaser.Scene {
     
     // Place 3-5 clams
     const clamCount = 3 + Math.floor(this.currentLevel / 2);
-    this.totalPearls = clamCount;
+    const actualClamCount = Math.min(clamCount, shuffled.length);
+    this.totalPearls = actualClamCount;
     this.collectedPearls = 0;
+    console.log(`Level ${this.currentLevel}: Generating ${actualClamCount} clams`);
     
-    for (let i = 0; i < Math.min(clamCount, shuffled.length); i++) {
+    for (let i = 0; i < actualClamCount; i++) {
       const pos = shuffled[i];
       const clam = new Clam(
         this,
@@ -164,7 +173,7 @@ export default class GameScene extends Phaser.Scene {
     
     // Place 2-3 water currents
     const currentCount = 2 + Math.floor(this.currentLevel / 3);
-    for (let i = clamCount; i < clamCount + currentCount && i < shuffled.length; i++) {
+    for (let i = actualClamCount; i < actualClamCount + currentCount && i < shuffled.length; i++) {
       const pos = shuffled[i];
       const directions = [
         { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
@@ -304,10 +313,12 @@ export default class GameScene extends Phaser.Scene {
     // Pearl collection
     this.events.on('pearl-collected', (value) => {
       this.collectedPearls++;
+      console.log(`Pearl collected! Count: ${this.collectedPearls}/${this.totalPearls}`);
       this.scoreDisplay.updatePearlCount(this.collectedPearls, this.totalPearls);
       
       // Check victory condition
       if (this.collectedPearls >= this.totalPearls) {
+        console.log('Victory! All pearls collected.');
         this.endGame(true);
       }
     });
