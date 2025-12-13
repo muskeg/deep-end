@@ -2,6 +2,8 @@
 
 A vibe coded action arcade browser game where you navigate procedurally generated underwater caverns, collect pearls from clams, and manage your oxygen supply before time runs out.
 
+**🎮 [Play Now on GitHub Pages](https://muskeg.github.io/deep-end/)**
+
 ## 🎮 Features
 
 - **Intuitive Controls**: Arrow keys or WASD for movement, Spacebar to interact
