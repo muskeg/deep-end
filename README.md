@@ -1,6 +1,6 @@
-# 🌊 Underwater Cavern Explorer
+# 🌊 Deep End
 
-Action arcade browser game where you navigate procedurally generated underwater caverns, collect pearls from clams, and manage your oxygen supply before time runs out.
+A vibe coded action arcade browser game where you navigate procedurally generated underwater caverns, collect pearls from clams, and manage your oxygen supply before time runs out.
 
 ## 🎮 Features
 
