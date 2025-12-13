@@ -3,11 +3,13 @@
 **Feature Branch**: `001-underwater-cavern-game`  
 **Created**: 2025-12-12  
 **Updated**: 2025-12-12  
-**Status**: Implemented  
+**Status**: Deployed  
+**Live Demo**: https://muskeg.github.io/deep-end/  
 **Input**: User description: "Action arcade game where player navigates procedurally generated underwater caverns collecting pearls with oxygen-based time limit"
 
 **Game Title**: Deep End  
-**Display**: Fullscreen responsive browser game
+**Display**: Fullscreen responsive browser game  
+**Deployment**: GitHub Pages with automated CI/CD via GitHub Actions
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -119,6 +121,8 @@ Each playthrough generates unique cavern layouts with increasing difficulty, pro
 - **FR-023**: System MUST render fullscreen responsive canvas that adapts to browser window size
 - **FR-024**: System MUST provide scrollable game world (3x viewport size) with camera following player
 - **FR-025**: System MUST keep UI elements (oxygen meter, level display, pearl count) fixed to camera view
+- **FR-026**: System MUST be deployable to GitHub Pages with automated build pipeline
+- **FR-027**: System MUST properly initialize pearl tracking counters (totalPearls, collectedPearls) at level start to prevent state carryover between levels
 
 ### Key Entities
 
@@ -141,5 +145,7 @@ Each playthrough generates unique cavern layouts with increasing difficulty, pro
 - **SC-004**: 80% of procedurally generated levels are completable within the oxygen time limit for skilled players (fair generation algorithm ensures 50%+ navigable space)
 - **SC-005**: Players can distinguish between safe and dangerous areas within 5 seconds of viewing a new level (clear visual design with cyan player, gray walls, distinct entity colors)
 - **SC-006**: Game loads and becomes playable within 3 seconds on standard broadband connection and adapts instantly to window resize
+- **SC-009**: Pearl tracking accurately counts collected pearls with no false completions (level ends only when all pearls collected)
+- **SC-010**: Game successfully deploys to production via automated CI/CD pipeline and is publicly accessible
 - **SC-007**: 90% of players successfully collect at least one pearl in their first attempt (achievable core mechanic)
 - **SC-008**: Players understand oxygen mechanic consequences within first 60 seconds of gameplay (clear feedback)
