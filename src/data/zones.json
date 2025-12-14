@@ -1,0 +1,43 @@
+{
+  "zones": [
+    {
+      "name": "Sunlight Zone",
+      "minDepth": 0,
+      "maxDepth": 500,
+      "ambientColor": "0x4488aa",
+      "ambientIntensity": 0.8,
+      "enemyTypes": ["jellyfish"],
+      "enemySpeedMultiplier": 0.8,
+      "enemyDamageMultiplier": 0.8,
+      "enemySpawnRate": 0.005,
+      "pearlValue": 1,
+      "description": "Warm blue waters with gentle currents"
+    },
+    {
+      "name": "Twilight Zone",
+      "minDepth": 500,
+      "maxDepth": 1500,
+      "ambientColor": "0x2244aa",
+      "ambientIntensity": 0.4,
+      "enemyTypes": ["jellyfish", "squid"],
+      "enemySpeedMultiplier": 1.2,
+      "enemyDamageMultiplier": 1.2,
+      "enemySpawnRate": 0.015,
+      "pearlValue": 5,
+      "description": "Darker depths where light begins to fade"
+    },
+    {
+      "name": "Midnight Zone",
+      "minDepth": 1500,
+      "maxDepth": 10000,
+      "ambientColor": "0x111144",
+      "ambientIntensity": 0.1,
+      "enemyTypes": ["anglerfish", "squid"],
+      "enemySpeedMultiplier": 1.6,
+      "enemyDamageMultiplier": 2.0,
+      "enemySpawnRate": 0.025,
+      "pearlValue": 20,
+      "description": "Pitch black abyss with deadly predators"
+    }
+  ]
+}

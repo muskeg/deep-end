@@ -1,0 +1,48 @@
+{
+  "landmarks": [
+    {
+      "name": "Surface Plateau",
+      "region": {
+        "minX": 50,
+        "maxX": 150,
+        "minY": 0,
+        "maxY": 20
+      },
+      "wallDensity": 0.1,
+      "description": "Open starting area with easy navigation"
+    },
+    {
+      "name": "Kelp Forest",
+      "region": {
+        "minX": 200,
+        "maxX": 280,
+        "minY": 30,
+        "maxY": 70
+      },
+      "wallDensity": 0.25,
+      "description": "Dense vegetation providing moderate cover"
+    },
+    {
+      "name": "Rocky Cavern",
+      "region": {
+        "minX": 100,
+        "maxX": 180,
+        "minY": 80,
+        "maxY": 130
+      },
+      "wallDensity": 0.4,
+      "description": "Tight corridors with frequent obstacles"
+    },
+    {
+      "name": "Deep Trench",
+      "region": {
+        "minX": 300,
+        "maxX": 400,
+        "minY": 150,
+        "maxY": 200
+      },
+      "wallDensity": 0.5,
+      "description": "Perilous deep zone with narrow passages"
+    }
+  ]
+}

@@ -6,7 +6,7 @@ import { PLAYER_CONFIG, OXYGEN_CONFIG, COLORS } from '../utils/Constants.js';
  * Controllable diver character with movement, oxygen management, and pearl collection
  */
 export default class Player extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, y) {
+  constructor(scene, x, y, upgradeParams = {}) {
     super(scene, x, y);
     
     this.scene = scene;
@@ -22,8 +22,17 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.setCollideWorldBounds(true);
     this.body.setCircle(PLAYER_CONFIG.COLLISION_RADIUS);
     
+    // Upgrade multipliers and bonuses (from UpgradeSystem)
+    this.oxygenMultiplier = upgradeParams.oxygenMultiplier || 1.0;
+    this.lightMultiplier = upgradeParams.lightMultiplier || 1.0;
+    this.speedMultiplier = upgradeParams.speedMultiplier || 1.0;
+    this.harpoonDamageBonus = upgradeParams.harpoonDamageBonus || 0;
+    this.dashCooldownReduction = upgradeParams.dashCooldownReduction || 0;
+    this.sonarRangeBonus = upgradeParams.sonarRangeBonus || 0;
+    
     // Game state
-    this.oxygen = PLAYER_CONFIG.INITIAL_OXYGEN;
+    this.oxygen = PLAYER_CONFIG.INITIAL_OXYGEN * this.oxygenMultiplier;
+    this.maxOxygen = PLAYER_CONFIG.INITIAL_OXYGEN * this.oxygenMultiplier;
     this.score = 0;
     this.pearlsCollected = 0;
     this.isInvulnerable = false;
@@ -53,9 +62,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       velocityY /= magnitude;
     }
     
-    // Apply speed
-    this.body.velocity.x = velocityX * PLAYER_CONFIG.SPEED;
-    this.body.velocity.y = velocityY * PLAYER_CONFIG.SPEED;
+    // Apply speed with upgrade multiplier
+    const speed = PLAYER_CONFIG.SPEED * this.speedMultiplier;
+    this.body.velocity.x = velocityX * speed;
+    this.body.velocity.y = velocityY * speed;
   }
   
   /**
