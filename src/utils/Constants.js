@@ -82,12 +82,16 @@ export const COLORS = {
   CURRENT: 0x66d9ff,
   OXYGEN_FULL: 0x00ff00,
   OXYGEN_WARNING: 0xffaa00,
-  OXYGEN_CRITICAL: 0xff0000
+  OXYGEN_CRITICAL: 0xff0000,
+  HARPOON: 0x888888,
+  HARPOON_TIP: 0xCCCCCC,
+  DASH: 0x00FFFF
 };
 
 export const SCENES = {
   BOOT: 'BootScene',
   MENU: 'MenuScene',
+  SHOP: 'ShopScene',
   GAME: 'GameScene',
   GAME_OVER: 'GameOverScene'
 };

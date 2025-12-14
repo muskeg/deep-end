@@ -79,19 +79,19 @@
 
 ### Implementation for User Story 2
 
-- [ ] T026 [P] [US2] Create `src/systems/DepthZoneSystem.js` class with getCurrentZone(depth), updateAmbientLight(depth, lightsManager), getEnemyMultipliers(zone), getPearlValue(zone) methods
-- [ ] T027 [P] [US2] Create `src/ui/DepthMeter.js` class with updateDepth(meters), displayZoneName(zone) methods
-- [ ] T028 [US2] In DepthZoneSystem, load zones.json and store zone configs (Sunlight, Twilight, Midnight)
-- [ ] T029 [US2] In DepthZoneSystem.getCurrentZone(), compare player depth to zone boundaries (500m, 1500m) and return matching zone object
-- [ ] T030 [US2] In DepthZoneSystem.updateAmbientLight(), lerp ambient light color over 100px transition at zone boundaries
-- [ ] T031 [US2] In GameScene.update(), call DepthZoneSystem.getCurrentZone(player.y) and DepthZoneSystem.updateAmbientLight(player.y, this.lights)
-- [ ] T032 [US2] Update `src/systems/DifficultySystem.js` to call DepthZoneSystem.getEnemyMultipliers(currentZone) and scale enemy speed/damage accordingly
-- [ ] T033 [US2] Update `src/entities/Enemy.js` to accept speed and damage multipliers in constructor
-- [ ] T034 [US2] Update `src/entities/Pearl.js` to accept value parameter (1/5/20) based on zone when spawned
-- [ ] T035 [US2] In GameScene enemy spawning, use DifficultySystem to get zone-scaled spawn rate and enemy stats
-- [ ] T036 [US2] In GameScene clam spawning, use DepthZoneSystem.getPearlValue(zone) to set pearl value tier
-- [ ] T037 [US2] Add DepthMeter UI to GameScene showing current depth in meters and zone name (e.g., "Depth: 847m - Twilight Zone")
-- [ ] T038 [US2] Add visual/audio feedback when crossing zone boundary (screen flash, sound effect)
+- [X] T026 [P] [US2] Create `src/systems/DepthZoneSystem.js` class with getCurrentZone(depth), updateAmbientLight(depth, lightsManager), getEnemyMultipliers(zone), getPearlValue(zone) methods
+- [X] T027 [P] [US2] Create `src/ui/DepthMeter.js` class with updateDepth(meters), displayZoneName(zone) methods
+- [X] T028 [US2] In DepthZoneSystem, load zones.json and store zone configs (Sunlight, Twilight, Midnight)
+- [X] T029 [US2] In DepthZoneSystem.getCurrentZone(), compare player depth to zone boundaries (500m, 1500m) and return matching zone object
+- [X] T030 [US2] In DepthZoneSystem.updateAmbientLight(), lerp ambient light color over 100px transition at zone boundaries
+- [X] T031 [US2] In GameScene.update(), call DepthZoneSystem.getCurrentZone(player.y) and DepthZoneSystem.updateAmbientLight(player.y, this.lights)
+- [X] T032 [US2] Update `src/systems/DifficultySystem.js` to call DepthZoneSystem.getEnemyMultipliers(currentZone) and scale enemy speed/damage accordingly
+- [X] T033 [US2] Update `src/entities/Enemy.js` to accept speed and damage multipliers in constructor
+- [X] T034 [US2] Update `src/entities/Pearl.js` to accept value parameter (1/5/20) based on zone when spawned
+- [X] T035 [US2] In GameScene enemy spawning, use DifficultySystem to get zone-scaled spawn rate and enemy stats
+- [X] T036 [US2] In GameScene clam spawning, use DepthZoneSystem.getPearlValue(zone) to set pearl value tier
+- [X] T037 [US2] Add DepthMeter UI to GameScene showing current depth in meters and zone name (e.g., "Depth: 847m - Twilight Zone")
+- [X] T038 [US2] Add visual/audio feedback when crossing zone boundary (screen flash, sound effect)
 
 **Checkpoint**: User Story 2 complete - Depth zones create meaningful difficulty progression and risk/reward
 

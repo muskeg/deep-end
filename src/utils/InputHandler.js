@@ -261,10 +261,3 @@ export default class InputHandler {
     }
   }
 }
-      this.scene.input.keyboard.off('keydown-SPACE', this.interactCallback);
-    }
-    if (this.pauseCallback) {
-      this.scene.input.keyboard.off('keydown-ESCAPE', this.pauseCallback);
-    }
-  }
-}

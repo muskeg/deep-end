@@ -14,9 +14,13 @@ export default class Eel extends Enemy {
    * @param {number} y - Initial y position
    * @param {Phaser.Physics.Arcade.Sprite} player - Reference to the player
    * @param {{x: number, y: number}} hidingPosition - Position to return to (defaults to start position)
+   * @param {object} multipliers - Zone-based difficulty multipliers
    */
-  constructor(scene, x, y, player, hidingPosition = null) {
+  constructor(scene, x, y, player, hidingPosition = null, multipliers = {}) {
     super(scene, x, y, player, ENEMY_CONFIG.EEL.DETECTION_RADIUS);
+    
+    // Apply zone multipliers
+    const { speedMultiplier = 1.0, damageMultiplier = 1.0 } = multipliers;
     
     // Hiding position (resting spot)
     this.hidingPosition = hidingPosition || { x, y };
@@ -24,9 +28,9 @@ export default class Eel extends Enemy {
     // State machine
     this.state = 'idle'; // idle, chasing, lunging, returning
     
-    // Movement speeds
-    this.chaseSpeed = ENEMY_CONFIG.EEL.CHASE_SPEED;
-    this.lungeSpeed = ENEMY_CONFIG.EEL.LUNGE_SPEED;
+    // Movement speeds (with zone multiplier)
+    this.chaseSpeed = ENEMY_CONFIG.EEL.CHASE_SPEED * speedMultiplier;
+    this.lungeSpeed = ENEMY_CONFIG.EEL.LUNGE_SPEED * speedMultiplier;
     
     // Lunge attack configuration
     this.lungeRange = ENEMY_CONFIG.EEL.LUNGE_RANGE;
@@ -38,6 +42,9 @@ export default class Eel extends Enemy {
     
     // Hiding position reach threshold
     this.hideReachThreshold = 10;
+    
+    // Damage (with zone multiplier)
+    this.contactDamage = (ENEMY_CONFIG.EEL.CONTACT_DAMAGE || 15) * damageMultiplier;
   }
   
   /**

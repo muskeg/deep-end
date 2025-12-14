@@ -68,12 +68,13 @@ export default class OxygenSystem {
   checkThresholds() {
     const currentTime = this.scene.time?.now ?? 0;
     
-    if (this.player.oxygen <= OXYGEN_CONFIG.WARNING_THRESHOLD) {
+    // Use player's max oxygen (scaled by upgrades)
+    const maxOxygen = this.player.maxOxygen || PLAYER_CONFIG.INITIAL_OXYGEN;
+    const warningThreshold = (maxOxygen * OXYGEN_CONFIG.WARNING_THRESHOLD) / 100;
+    
+    if (this.player.oxygen <= warningThreshold) {
       // Calculate beep interval based on oxygen level (faster as oxygen decreases)
-      // At 30% oxygen: beep every 2 seconds
-      // At 15% oxygen: beep every 1 second
-      // At 5% oxygen: beep every 0.5 seconds
-      const oxygenPercent = this.player.oxygen / PLAYER_CONFIG.INITIAL_OXYGEN;
+      const oxygenPercent = this.player.oxygen / maxOxygen;
       const beepInterval = Math.max(500, oxygenPercent * 6000); // 500ms to 1800ms
       
       if (currentTime - this.lastBeepTime >= beepInterval) {

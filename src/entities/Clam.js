@@ -7,7 +7,7 @@ import Pearl from './Pearl.js';
  * Interactive object that opens to dispense pearls
  */
 export default class Clam extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, y, hasPearl = true) {
+  constructor(scene, x, y, hasPearl = true, pearlValue = 1) {
     super(scene, x, y);
     
     this.scene = scene;
@@ -16,6 +16,7 @@ export default class Clam extends Phaser.Physics.Arcade.Sprite {
     
     // State
     this.hasPearl = hasPearl;
+    this.pearlValue = pearlValue; // Zone-based pearl value
     this.isOpen = false;
     this.pearlDispensed = false;
     
@@ -71,7 +72,7 @@ export default class Clam extends Phaser.Physics.Arcade.Sprite {
     this.pearlDispensed = true;
     this.hasPearl = false;
     
-    const pearl = new Pearl(this.scene, this.x, this.y);
+    const pearl = new Pearl(this.scene, this.x, this.y, this.pearlValue);
     this.scene.events.emit('pearl-dispensed', pearl);
     
     return pearl;

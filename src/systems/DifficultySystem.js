@@ -1,11 +1,13 @@
 /**
  * DifficultySystem
- * Manages difficulty scaling across levels
- * Provides balanced progression curves for all game parameters
+ * Manages difficulty scaling based on depth zones
+ * Integrates with DepthZoneSystem for zone-based difficulty
  */
 export default class DifficultySystem {
-  constructor() {
-    // Base values for level 1
+  constructor(scene) {
+    this.scene = scene;
+    
+    // Base values for level 1 (legacy - kept for non-zone features)
     this.baseClams = 3;
     this.baseCurrents = 2;
     this.baseJellyfish = 1;
@@ -23,6 +25,23 @@ export default class DifficultySystem {
     this.maxOxygenRate = 2.5;
     this.maxDensity = 0.55;
     this.maxMinOpenSpace = 0.40; // Minimum open space (inverse relationship)
+  }
+
+  /**
+   * Get current zone-based difficulty multipliers
+   * Returns object with speed, damage, and spawn rate multipliers
+   */
+  getZoneDifficulty(playerY) {
+    if (this.scene.depthZoneSystem) {
+      return this.scene.depthZoneSystem.getEnemyMultipliers(playerY);
+    }
+    
+    // Fallback to no multipliers
+    return {
+      speedMultiplier: 1.0,
+      damageMultiplier: 1.0,
+      spawnRateMultiplier: 1.0
+    };
   }
 
   /**

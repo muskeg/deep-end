@@ -13,10 +13,16 @@ import CurrentSystem from '../systems/CurrentSystem.js';
 import CollisionSystem from '../systems/CollisionSystem.js';
 import CavernGenerator from '../systems/CavernGenerator.js';
 import DifficultySystem from '../systems/DifficultySystem.js';
+import DepthZoneSystem from '../systems/DepthZoneSystem.js';
+import CombatSystem from '../systems/CombatSystem.js';
+import PathfindingSystem from '../systems/PathfindingSystem.js';
 import ScoreManager from '../utils/ScoreManager.js';
 import AudioManager from '../utils/AudioManager.js';
+import ProgressionSystem from '../systems/ProgressionSystem.js';
 import OxygenMeter from '../ui/OxygenMeter.js';
 import ScoreDisplay from '../ui/ScoreDisplay.js';
+import DepthMeter from '../ui/DepthMeter.js';
+import DashCooldown from '../ui/DashCooldown.js';
 import FPSDisplay from '../ui/FPSDisplay.js';
 
 /**
@@ -35,6 +41,16 @@ export default class GameScene extends Phaser.Scene {
     this.gameOver = false;
     this.isPaused = false;
     
+    // Upgrade parameters from ShopScene
+    this.upgradeParams = data.upgradeParams || {
+      oxygenMultiplier: 1.0,
+      lightMultiplier: 1.0,
+      speedMultiplier: 1.0,
+      harpoonDamageBonus: 0,
+      dashCooldownReduction: 0,
+      sonarRangeBonus: 0
+    };
+    
     // Pearl tracking (will be set by generateProceduralCavern)
     this.totalPearls = 0;
     this.collectedPearls = 0;
@@ -45,6 +61,7 @@ export default class GameScene extends Phaser.Scene {
     this.pearls = [];
     this.currents = [];
     this.enemies = [];
+    this.harpoons = []; // Player harpoon projectiles
   }
 
   create() {
@@ -111,8 +128,8 @@ export default class GameScene extends Phaser.Scene {
     this.surfaceLine.setDepth(10);
     this.surfaceLine.setPipeline('Light2D'); // Enable lighting
     
-    // Create player at center of world
-    this.player = new Player(this, this.worldWidth / 2, this.worldHeight / 2);
+    // Create player at center of world with upgrade parameters
+    this.player = new Player(this, this.worldWidth / 2, this.worldHeight / 2, this.upgradeParams);
     
     // Camera follows player
     this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
@@ -121,8 +138,26 @@ export default class GameScene extends Phaser.Scene {
     // Create input handler
     this.inputHandler = new InputHandler(this);
     
+    // Setup combat input callbacks
+    this.inputHandler.onAttack(() => {
+      const harpoon = this.player.fireHarpoon();
+      if (harpoon) {
+        this.harpoons.push(harpoon);
+      }
+    });
+    
+    this.inputHandler.onDash(() => {
+      const success = this.player.activateDash();
+      if (success && this.dashCooldownUI) {
+        this.dashCooldownUI.startCooldown(this.player.dashAbility.cooldown);
+      }
+    });
+    
     // Create score manager
     this.scoreManager = new ScoreManager();
+    
+    // Create progression system
+    this.progressionSystem = new ProgressionSystem();
     
     // Create audio manager
     this.audioManager = new AudioManager(this);
@@ -132,8 +167,17 @@ export default class GameScene extends Phaser.Scene {
     this.oxygenSystem = new OxygenSystem(this, this.player);
     
     // Create difficulty system
-    this.difficultySystem = new DifficultySystem();
+    this.difficultySystem = new DifficultySystem(this);
     const difficulty = this.difficultySystem.getDifficultyConfig(this.currentLevel);
+    
+    // Create depth zone system
+    this.depthZoneSystem = new DepthZoneSystem(this);
+    
+    // Create combat system
+    this.combatSystem = new CombatSystem(this);
+    
+    // Create pathfinding system
+    this.pathfindingSystem = new PathfindingSystem(this);
     
     // Apply oxygen depletion rate from difficulty
     this.oxygenSystem.setDepletionRate(difficulty.oxygenRate);
@@ -150,7 +194,15 @@ export default class GameScene extends Phaser.Scene {
     
     this.scoreDisplay = new ScoreDisplay(this, 16, 16);
     this.scoreDisplay.setScrollFactor(0);
+    
+    // Dash cooldown UI
+    this.dashCooldownUI = new DashCooldown(this, width - 220, 200);
+    this.dashCooldownUI.setScrollFactor(0);
     this.scoreDisplay.updateLevel(this.currentLevel);
+    
+    // Depth meter UI
+    this.depthMeter = new DepthMeter(this, width - 220, 100);
+    this.depthMeter.setScrollFactor(0);
     
     // FPS display (toggle with F key)
     this.fpsDisplay = new FPSDisplay(this);
@@ -167,10 +219,13 @@ export default class GameScene extends Phaser.Scene {
     // Setup event listeners
     this.setupEventListeners();
     
-    // ESC to toggle pause (using direct keyboard listener)
+    // ESC key to surface voluntarily (roguelike mode)
     this.input.keyboard.on('keydown', (event) => {
       if (event.key === 'Escape' || event.keyCode === 27) {
-        this.togglePause();
+        if (!this.gameOver) {
+          console.log('[GameScene] ESC pressed - surfacing voluntarily');
+          this.surfaceVoluntarily();
+        }
       }
     });
     
@@ -245,6 +300,15 @@ export default class GameScene extends Phaser.Scene {
         }
       }
     }
+    
+    // Build pathfinding grid from walls
+    const wallRects = this.walls.map(wall => ({
+      x: wall.x - wall.tileSize / 2,
+      y: wall.y - wall.tileSize / 2,
+      width: wall.tileSize,
+      height: wall.tileSize
+    }));
+    this.pathfindingSystem.buildGrid(wallRects, this.worldWidth, this.worldHeight);
     
     // Create invisible walls at water surface to prevent entities from going above
     const surfaceGridY = Math.floor(gridHeight * 0.03);
@@ -349,12 +413,16 @@ export default class GameScene extends Phaser.Scene {
         y: p.y * tileSize + tileSize / 2
       }));
       
+      const spawnY = startPos.y * tileSize + tileSize / 2;
+      const zoneMultipliers = this.difficultySystem.getZoneDifficulty(spawnY);
+      
       const jellyfish = new Jellyfish(
         this,
         startPos.x * tileSize + tileSize / 2,
-        startPos.y * tileSize + tileSize / 2,
+        spawnY,
         this.player,
-        waypoints
+        waypoints,
+        zoneMultipliers
       );
       this.enemies.push(jellyfish);
       this.collisionSystem.addEnemy(jellyfish);
@@ -368,12 +436,16 @@ export default class GameScene extends Phaser.Scene {
         const eelIndex = Math.max(0, eelStartIndex + i);
         if (eelIndex < shuffled.length) {
           const eelPos = shuffled[eelIndex];
+          const eelY = eelPos.y * tileSize + tileSize / 2;
+          const zoneMultipliers = this.difficultySystem.getZoneDifficulty(eelY);
+          
           const eel = new Eel(
             this,
             eelPos.x * tileSize + tileSize / 2,
-            eelPos.y * tileSize + tileSize / 2,
+            eelY,
             this.player,
-            { x: eelPos.x * tileSize + tileSize / 2, y: eelPos.y * tileSize + tileSize / 2 }
+            { x: eelPos.x * tileSize + tileSize / 2, y: eelY },
+            zoneMultipliers
           );
           this.enemies.push(eel);
           this.collisionSystem.addEnemy(eel);
@@ -418,7 +490,11 @@ export default class GameScene extends Phaser.Scene {
     ];
     
     clamPositions.forEach(pos => {
-      const clam = new Clam(this, pos.x, pos.y, true);
+      // Get zone-based pearl value
+      const currentZone = this.depthZoneSystem.getCurrentZone(pos.y);
+      const pearlValue = this.depthZoneSystem.getPearlValue(currentZone);
+      
+      const clam = new Clam(this, pos.x, pos.y, true, pearlValue);
       this.clams.push(clam);
     });
     
@@ -429,7 +505,9 @@ export default class GameScene extends Phaser.Scene {
       { x: width * 0.4, y: height * 0.4 },
       { x: width * 0.2, y: height * 0.4 }
     ];
-    const jellyfish1 = new Jellyfish(this, width * 0.2, height * 0.2, this.player, jellyfish1Waypoints);
+    const jellyY1 = height * 0.2;
+    const zoneMultipliers1 = this.difficultySystem.getZoneDifficulty(jellyY1);
+    const jellyfish1 = new Jellyfish(this, width * 0.2, jellyY1, this.player, jellyfish1Waypoints, zoneMultipliers1);
     this.enemies.push(jellyfish1);
     this.collisionSystem.addEnemy(jellyfish1);
     
@@ -439,13 +517,17 @@ export default class GameScene extends Phaser.Scene {
       { x: width * 0.8, y: height * 0.7 },
       { x: width * 0.6, y: height * 0.7 }
     ];
-    const jellyfish2 = new Jellyfish(this, width * 0.6, height * 0.5, this.player, jellyfish2Waypoints);
+    const jellyY2 = height * 0.5;
+    const zoneMultipliers2 = this.difficultySystem.getZoneDifficulty(jellyY2);
+    const jellyfish2 = new Jellyfish(this, width * 0.6, jellyY2, this.player, jellyfish2Waypoints, zoneMultipliers2);
     this.enemies.push(jellyfish2);
     this.collisionSystem.addEnemy(jellyfish2);
     
     // Place 1 eel enemy with hiding spot
     const eelHidingPosition = { x: width * 0.1, y: height * 0.9 };
-    const eel = new Eel(this, width * 0.1, height * 0.9, this.player, eelHidingPosition);
+    const eelY = height * 0.9;
+    const zoneMultipliers3 = this.difficultySystem.getZoneDifficulty(eelY);
+    const eel = new Eel(this, width * 0.1, eelY, this.player, eelHidingPosition, zoneMultipliers3);
     this.enemies.push(eel);
     this.collisionSystem.addEnemy(eel);
   }
@@ -464,11 +546,15 @@ export default class GameScene extends Phaser.Scene {
     // Pearl collection
     this.events.on('pearl-collected', (value) => {
       this.collectedPearls++;
+      
+      // Add pearl to progression system
+      this.progressionSystem.addPearls(value || 1);
+      
       this.audioManager.playPearlCollect();
       console.log(`Pearl collected! Count: ${this.collectedPearls}/${this.totalPearls}`);
       this.scoreDisplay.updatePearlCount(this.collectedPearls, this.totalPearls);
       
-      // Check victory condition
+      // Check victory condition (optional in roguelike mode)
       if (this.collectedPearls >= this.totalPearls) {
         console.log('Victory! All pearls collected.');
         this.endGame(true);
@@ -498,6 +584,18 @@ export default class GameScene extends Phaser.Scene {
       this.endGame(false);
     });
     
+    // Zone change event
+    this.events.on('zone-changed', (newZone) => {
+      console.log(`Entered ${newZone.name}`);
+      this.depthMeter.showZoneChange(newZone.name);
+      
+      // Visual flash effect
+      this.cameras.main.flash(500, newZone.ambientColor >> 16 & 0xff, newZone.ambientColor >> 8 & 0xff, newZone.ambientColor & 0xff);
+      
+      // Audio cue (placeholder - would need actual sound)
+      // this.audioManager.playZoneTransition();
+    });
+    
     // Game over
     this.events.on('game-over', () => {
       this.endGame(false);
@@ -513,6 +611,17 @@ export default class GameScene extends Phaser.Scene {
     // Update player movement
     this.player.handleMovement(input);
     
+    // Update player abilities (dash and harpoon cooldowns)
+    this.player.updateAbilities(delta);
+    
+    // Update dash cooldown UI
+    if (this.dashCooldownUI) {
+      this.dashCooldownUI.update(delta);
+    }
+    
+    // Update depth zone system (ambient lighting and zone tracking)
+    this.depthZoneSystem.updateAmbientLight(this.player.y, this.lights);
+    
     // Update oxygen system
     const deltaSeconds = delta / 1000;
     this.oxygenSystem.update(deltaSeconds);
@@ -522,6 +631,26 @@ export default class GameScene extends Phaser.Scene {
     
     // Update collision system (includes enemy collisions)
     this.collisionSystem.update(deltaSeconds);
+    
+    // Update harpoons
+    this.harpoons.forEach((harpoon, index) => {
+      if (harpoon.active) {
+        harpoon.update(time, delta);
+        
+        // Check collision with enemies
+        this.enemies.forEach(enemy => {
+          if (enemy.active && Phaser.Geom.Intersects.RectangleToRectangle(harpoon.getBounds(), enemy.getBounds())) {
+            const damage = harpoon.onEnemyCollision(enemy);
+            if (damage > 0) {
+              this.combatSystem.dealDamage(enemy, damage);
+            }
+          }
+        });
+      } else {
+        // Remove inactive harpoons
+        this.harpoons.splice(index, 1);
+      }
+    });
     
     // Update enemies
     this.enemies.forEach(enemy => {
@@ -533,6 +662,12 @@ export default class GameScene extends Phaser.Scene {
     // Update UI
     this.oxygenMeter.update(this.player.oxygen);
     this.fpsDisplay.update(time, delta);
+    
+    // Update depth meter
+    const depthInMeters = this.player.y / 100;
+    this.depthMeter.updateDepth(depthInMeters);
+    const currentZone = this.depthZoneSystem.getCurrentZone(this.player.y);
+    this.depthMeter.displayZoneName(currentZone.name);
     
     // Update player visuals
     this.player.update(time, delta);
@@ -622,41 +757,47 @@ export default class GameScene extends Phaser.Scene {
     if (this.gameOver) return;
     this.gameOver = true;
     
-    // Update high score
-    const isNewHigh = this.scoreManager.updateHighScore(this.currentLevel);
-    if (isNewHigh) {
-      console.log(`New high score! Level ${this.currentLevel}`);
+    // Update statistics
+    this.progressionSystem.updateStatistic('totalDeaths', 1);
+    
+    // Update deepest depth if applicable
+    const currentDepth = this.player.y / 100; // Convert pixels to meters (approximate)
+    if (currentDepth > this.progressionSystem.getStatistics().deepestDepthReached) {
+      this.progressionSystem.updateStatistic('deepestDepthReached', currentDepth, true);
     }
     
-    console.log(`Level ${this.currentLevel} complete: ${victory ? 'Victory!' : 'Game Over'}`);
+    console.log(`Dive ended: ${victory ? 'Victory!' : 'Oxygen depleted'}`);
     
-    if (victory) {
-      // Play level complete sound
-      this.audioManager.playLevelComplete();
-      
-      // Level complete - progress to next level
-      this.cameras.main.fadeOut(500, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        // Restart GameScene with next level
-        this.scene.restart({
-          level: this.currentLevel + 1,
-          score: this.currentScore
-        });
-      });
-    } else {
-      // Play game over sound
-      this.audioManager.playGameOver();
-      
-      // Game over - show game over screen
-      this.cameras.main.fadeOut(500, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        this.scene.start(SCENES.GAME_OVER, {
-          victory: false,
-          level: this.currentLevel,
-          score: this.currentScore
-        });
-      });
+    // Roguelike mode: always return to shop (keep pearls)
+    this.audioManager.playGameOver();
+    
+    // Fade to shop scene
+    this.cameras.main.fadeOut(500, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.start(SCENES.SHOP);
+    });
+  }
+
+  /**
+   * Surface voluntarily (ESC key) - return to shop keeping pearls
+   */
+  surfaceVoluntarily() {
+    if (this.gameOver) return;
+    this.gameOver = true;
+    
+    // Update statistics
+    const currentDepth = this.player.y / 100;
+    if (currentDepth > this.progressionSystem.getStatistics().deepestDepthReached) {
+      this.progressionSystem.updateStatistic('deepestDepthReached', currentDepth, true);
     }
+    
+    console.log('[GameScene] Surfacing voluntarily - returning to shop');
+    
+    // Fade to shop scene
+    this.cameras.main.fadeOut(500, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.start(SCENES.SHOP);
+    });
   }
 
   /**

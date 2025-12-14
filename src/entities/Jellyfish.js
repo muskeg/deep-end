@@ -14,18 +14,25 @@ export default class Jellyfish extends Enemy {
    * @param {number} y - Initial y position
    * @param {Phaser.Physics.Arcade.Sprite} player - Reference to the player
    * @param {Array<{x: number, y: number}>} waypoints - Patrol waypoints (optional)
+   * @param {object} multipliers - Zone-based difficulty multipliers
    */
-  constructor(scene, x, y, player, waypoints = []) {
+  constructor(scene, x, y, player, waypoints = [], multipliers = {}) {
     super(scene, x, y, player, ENEMY_CONFIG.JELLYFISH.DETECTION_RADIUS);
+    
+    // Apply zone multipliers
+    const { speedMultiplier = 1.0, damageMultiplier = 1.0 } = multipliers;
     
     // Patrol configuration
     this.waypoints = waypoints;
     this.currentWaypointIndex = 0;
     this.waypointReachThreshold = 10; // Distance to consider waypoint "reached"
     
-    // Movement speeds
-    this.patrolSpeed = ENEMY_CONFIG.JELLYFISH.PATROL_SPEED;
-    this.chaseSpeed = ENEMY_CONFIG.JELLYFISH.CHASE_SPEED;
+    // Movement speeds (with zone multiplier)
+    this.patrolSpeed = ENEMY_CONFIG.JELLYFISH.PATROL_SPEED * speedMultiplier;
+    this.chaseSpeed = ENEMY_CONFIG.JELLYFISH.CHASE_SPEED * speedMultiplier;
+    
+    // Damage (with zone multiplier)
+    this.contactDamage = (ENEMY_CONFIG.JELLYFISH.CONTACT_DAMAGE || 10) * damageMultiplier;
   }
   
   /**
