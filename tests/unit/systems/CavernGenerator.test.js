@@ -66,18 +66,26 @@ describe('CavernGenerator', () => {
       expect(wallRatio).toBeLessThan(0.9);
     });
 
-    test('should create borders with walls', () => {
+    test('should create borders (except top - water surface)', () => {
       generator.generateInitialGrid();
       const grid = generator.getGrid();
       
-      // Check top and bottom borders
+      const surfaceZoneHeight = Math.floor(gridHeight * 0.03);
+      
+      // Check water surface zone (top 3%) is always open
+      for (let y = 0; y < surfaceZoneHeight; y++) {
+        for (let x = 0; x < gridWidth; x++) {
+          expect(grid[y][x]).toBe(0); // Open water at surface
+        }
+      }
+      
+      // Check bottom border is wall
       for (let x = 0; x < gridWidth; x++) {
-        expect(grid[0][x]).toBe(1);
         expect(grid[gridHeight - 1][x]).toBe(1);
       }
       
-      // Check left and right borders
-      for (let y = 0; y < gridHeight; y++) {
+      // Check left and right borders are walls (below surface zone)
+      for (let y = surfaceZoneHeight; y < gridHeight; y++) {
         expect(grid[y][0]).toBe(1);
         expect(grid[y][gridWidth - 1]).toBe(1);
       }
@@ -145,9 +153,12 @@ describe('CavernGenerator', () => {
     test('should handle edge cells correctly', () => {
       generator.generateInitialGrid();
       
-      // Edge cells should treat out-of-bounds as walls
-      const cornerCount = generator.countWallNeighbors(1, 1);
-      expect(cornerCount).toBeGreaterThanOrEqual(3); // At least 3 border walls
+      const surfaceZoneHeight = Math.floor(gridHeight * 0.03);
+      
+      // Test a corner below the surface zone
+      const testY = Math.max(surfaceZoneHeight + 1, 5);
+      const cornerCount = generator.countWallNeighbors(1, testY);
+      expect(cornerCount).toBeGreaterThanOrEqual(3); // At least 3 walls near left border
     });
   });
 

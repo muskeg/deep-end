@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_CONFIG, SCENES, FPS_TARGET } from './utils/Constants.js';
 import BootScene from './scenes/BootScene.js';
 import MenuScene from './scenes/MenuScene.js';
+import ShopScene from './scenes/ShopScene.js';
 import GameScene from './scenes/GameScene.js';
 import GameOverScene from './scenes/GameOverScene.js';
 
@@ -28,6 +29,7 @@ const config = {
   scene: [
     BootScene,
     MenuScene,
+    ShopScene,
     GameScene,
     GameOverScene
   ],

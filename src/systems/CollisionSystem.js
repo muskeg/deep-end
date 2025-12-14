@@ -63,40 +63,53 @@ export default class CollisionSystem {
   }
   
   /**
-   * Add an enemy to the system
+   * Check collision between entity and wall (AABB)
    */
-  addEnemy(enemy) {
-    this.enemies.push(enemy);
-  }
-  
-  /**
-   * Remove an enemy from the system
-   */
-  removeEnemy(enemy) {
-    const index = this.enemies.indexOf(enemy);
-    if (index > -1) {
-      this.enemies.splice(index, 1);
-    }
-  }
-  
-  /**
-   * Clear all enemies
-   */
-  clearEnemies() {
-    this.enemies = [];
-  }
-  
-  /**
-   * Check collision between player and wall (AABB)
-   */
-  checkCollision(player, wall) {
-    const playerHalfWidth = player.body.width / 2;
-    const playerHalfHeight = player.body.height / 2;
+  checkEntityWallCollision(entity, wall) {
+    const entityHalfWidth = (entity.body?.width || 32) / 2;
+    const entityHalfHeight = (entity.body?.height || 32) / 2;
     const wallHalfWidth = wall.width / 2;
     const wallHalfHeight = wall.height / 2;
     
-    return Math.abs(player.x - wall.x) < playerHalfWidth + wallHalfWidth &&
-           Math.abs(player.y - wall.y) < playerHalfHeight + wallHalfHeight;
+    return Math.abs(entity.x - wall.x) < entityHalfWidth + wallHalfWidth &&
+           Math.abs(entity.y - wall.y) < entityHalfHeight + wallHalfHeight;
+  }
+  
+  /**
+   * Resolve entity-wall collision with sliding
+   */
+  resolveEntityWallCollision(entity, wall) {
+    const entityHalfWidth = (entity.body?.width || 32) / 2;
+    const entityHalfHeight = (entity.body?.height || 32) / 2;
+    const wallHalfWidth = wall.width / 2;
+    const wallHalfHeight = wall.height / 2;
+    
+    // Calculate overlap on each axis
+    const overlapX = (entityHalfWidth + wallHalfWidth) - Math.abs(entity.x - wall.x);
+    const overlapY = (entityHalfHeight + wallHalfHeight) - Math.abs(entity.y - wall.y);
+    
+    // Resolve on the axis with less overlap (sliding)
+    if (overlapX < overlapY) {
+      // Horizontal collision - slide vertically
+      if (entity.x < wall.x) {
+        entity.x -= overlapX;
+      } else {
+        entity.x += overlapX;
+      }
+      if (entity.body) {
+        entity.body.velocity.x = 0;
+      }
+    } else {
+      // Vertical collision - slide horizontally
+      if (entity.y < wall.y) {
+        entity.y -= overlapY;
+      } else {
+        entity.y += overlapY;
+      }
+      if (entity.body) {
+        entity.body.velocity.y = 0;
+      }
+    }
   }
   
   /**
@@ -145,16 +158,27 @@ export default class CollisionSystem {
   update(deltaSeconds) {
     if (!this.isActive) return;
     
-    // Check wall collisions
+    // Check player-wall collisions
     for (const wall of this.walls) {
-      if (this.checkCollision(this.player, wall)) {
-        this.resolveCollision(this.player, wall);
+      if (this.checkEntityWallCollision(this.player, wall)) {
+        this.resolveEntityWallCollision(this.player, wall);
         this.totalCollisions++;
         
         this.scene.events.emit('wall-collision', {
           player: this.player,
           wall: wall
         });
+      }
+    }
+    
+    // Check enemy-wall collisions
+    for (const enemy of this.enemies) {
+      if (!enemy.isActive) continue;
+      
+      for (const wall of this.walls) {
+        if (this.checkEntityWallCollision(enemy, wall)) {
+          this.resolveEntityWallCollision(enemy, wall);
+        }
       }
     }
     
@@ -191,6 +215,14 @@ export default class CollisionSystem {
     this.totalEnemyCollisions++;
     this.scene.events.emit('enemy-collision', enemy);
     
+    // Screen shake effect
+    if (this.scene.cameras && this.scene.cameras.main) {
+      this.scene.cameras.main.shake(200, 0.01); // 200ms duration, 0.01 intensity
+    }
+    
+    // Create impact particles
+    this.createImpactParticles(this.player.x, this.player.y);
+    
     // Play sound effect
     if (this.scene.audioManager) {
       this.scene.audioManager.playEnemyHit();
@@ -204,6 +236,37 @@ export default class CollisionSystem {
     // Visual feedback - flash player
     if (this.player.flashInvulnerable) {
       this.player.flashInvulnerable();
+    }
+  }
+  
+  /**
+   * Create impact particles at collision point
+   */
+  createImpactParticles(x, y) {
+    if (!this.scene || !this.scene.add) return;
+    
+    const particleCount = 12;
+    const colors = [0xFF0000, 0xFF6600, 0xFFAA00]; // Red, orange, yellow
+    
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * 2 * i) / particleCount;
+      const speed = 80 + Math.random() * 60;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const size = 4 + Math.random() * 3;
+      
+      const particle = this.scene.add.circle(x, y, size, color, 1);
+      particle.setDepth(100);
+      
+      this.scene.tweens.add({
+        targets: particle,
+        x: x + Math.cos(angle) * (40 + Math.random() * 30),
+        y: y + Math.sin(angle) * (40 + Math.random() * 30),
+        alpha: 0,
+        scale: 0.1,
+        duration: 400 + Math.random() * 200,
+        ease: 'Cubic.easeOut',
+        onComplete: () => particle.destroy()
+      });
     }
   }
   

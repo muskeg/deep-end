@@ -19,6 +19,7 @@ export default class Pearl extends Phaser.Physics.Arcade.Sprite {
     
     // Graphics
     this.graphics = scene.add.graphics();
+    this.graphics.setPipeline('Light2D'); // Enable lighting
     this.updateVisuals();
     
     // Physics
@@ -71,6 +72,14 @@ export default class Pearl extends Phaser.Physics.Arcade.Sprite {
     this.isCollected = true;
     this.body.enable = false;
     
+    // Create particle burst effect
+    this.createCollectionParticles();
+    
+    // Play collection sound with pitch variation based on value
+    if (this.scene.audioManager) {
+      this.scene.audioManager.playPearlCollect();
+    }
+    
     try {
       this.scene.events.emit('pearl-collected', this.value);
     } catch (error) {
@@ -96,6 +105,52 @@ export default class Pearl extends Phaser.Physics.Arcade.Sprite {
     }
     
     return true;
+  }
+  
+  /**
+   * Create particle burst effect on collection
+   */
+  createCollectionParticles() {
+    if (!this.scene || !this.scene.add) return;
+    
+    // Sparkle burst particles
+    const particleCount = Math.min(15, 5 + this.value); // More particles for higher value
+    const colors = [COLORS.PEARL, 0xFFFFFF, 0xADD8E6]; // Pearl color, white, light blue
+    
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * 2 * i) / particleCount;
+      const speed = 100 + Math.random() * 100;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const size = 3 + Math.random() * 4;
+      
+      // Create particle graphic
+      const particle = this.scene.add.circle(this.x, this.y, size, color, 1);
+      particle.setDepth(100);
+      
+      // Animate particle outward
+      this.scene.tweens.add({
+        targets: particle,
+        x: this.x + Math.cos(angle) * (50 + Math.random() * 50),
+        y: this.y + Math.sin(angle) * (50 + Math.random() * 50),
+        alpha: 0,
+        scale: 0.2,
+        duration: 500 + Math.random() * 300,
+        ease: 'Cubic.easeOut',
+        onComplete: () => particle.destroy()
+      });
+    }
+    
+    // Central flash effect
+    const flash = this.scene.add.circle(this.x, this.y, 15, 0xFFFFFF, 0.8);
+    flash.setDepth(100);
+    this.scene.tweens.add({
+      targets: flash,
+      scale: 2.5,
+      alpha: 0,
+      duration: 300,
+      ease: 'Cubic.easeOut',
+      onComplete: () => flash.destroy()
+    });
   }
   
   /**

@@ -26,7 +26,13 @@ export default class WaterCurrent extends Phaser.GameObjects.GameObject {
     
     // Visual representation
     this.graphics = scene.add.graphics();
+    this.graphics.setPipeline('Light2D'); // Enable lighting
     this.updateVisuals();
+    
+    // Particle system for flow visualization
+    this.particles = [];
+    this.particleTimer = 0;
+    this.particleSpawnRate = 100; // milliseconds between particles
     
     scene.add.existing(this);
   }
@@ -138,16 +144,90 @@ export default class WaterCurrent extends Phaser.GameObjects.GameObject {
   }
   
   /**
-   * Update loop (for animations)
+   * Update loop (for animations and particles)
    */
   update(time, delta) {
-    // Future: Add particle effects, wave animations
+    if (!this.isActive) return;
+    
+    // Spawn flow particles
+    this.particleTimer += delta;
+    if (this.particleTimer >= this.particleSpawnRate) {
+      this.spawnFlowParticle();
+      this.particleTimer = 0;
+    }
+    
+    // Update existing particles
+    this.particles = this.particles.filter(particle => {
+      if (!particle || !particle.active) return false;
+      
+      // Move particle in current direction
+      particle.x += this.direction.x * this.strength * (delta / 16);
+      particle.y += this.direction.y * this.strength * (delta / 16);
+      
+      // Check if particle is still in current zone
+      const halfWidth = this.width / 2;
+      const halfHeight = this.height / 2;
+      const inZone = particle.x >= this.x - halfWidth &&
+                     particle.x <= this.x + halfWidth &&
+                     particle.y >= this.y - halfHeight &&
+                     particle.y <= this.y + halfHeight;
+      
+      if (!inZone) {
+        particle.destroy();
+        return false;
+      }
+      
+      return true;
+    });
+  }
+  
+  /**
+   * Spawn a flow particle to visualize current direction
+   */
+  spawnFlowParticle() {
+    if (!this.scene || !this.scene.add) return;
+    
+    const halfWidth = this.width / 2;
+    const halfHeight = this.height / 2;
+    
+    // Random position within current zone
+    const x = this.x + (Math.random() - 0.5) * this.width;
+    const y = this.y + (Math.random() - 0.5) * this.height;
+    
+    // Create particle
+    const size = 2 + Math.random() * 2;
+    const alpha = 0.3 + Math.random() * 0.3;
+    const particle = this.scene.add.circle(x, y, size, COLORS.CURRENT, alpha);
+    particle.setDepth(5); // Above water but below most entities
+    
+    // Add trail effect
+    this.scene.tweens.add({
+      targets: particle,
+      alpha: 0,
+      duration: 1500,
+      ease: 'Linear',
+      onComplete: () => {
+        if (particle && particle.active) {
+          particle.destroy();
+        }
+      }
+    });
+    
+    this.particles.push(particle);
   }
   
   /**
    * Cleanup
    */
   destroy() {
+    // Destroy all particles
+    this.particles.forEach(particle => {
+      if (particle && particle.active) {
+        particle.destroy();
+      }
+    });
+    this.particles = [];
+    
     if (this.graphics) {
       this.graphics.destroy();
     }

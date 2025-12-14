@@ -17,16 +17,24 @@ export default class InputHandler {
       S: 'S',
       D: 'D',
       SPACE: 'SPACE',
-      ESC: 'ESC'
+      ESC: 'ESC',
+      Q: 'Q',
+      SHIFT: 'SHIFT'
     });
     
     // Track just-pressed state
     this.justPressed = {
-      interact: false
+      interact: false,
+      attack: false,
+      dash: false,
+      surface: false
     };
     
     // Track callbacks for cleanup
     this.pauseCallback = null;
+    this.attackCallback = null;
+    this.dashCallback = null;
+    this.surfaceCallback = null;
   }
   
   /**
@@ -87,6 +95,46 @@ export default class InputHandler {
   onInteract(callback) {
     this.interactCallback = callback;
     this.scene.input.keyboard.on('keydown-SPACE', callback);
+  }
+
+  /**
+   * Register attack callback
+   */
+  onAttack(callback) {
+    this.attackCallback = callback;
+    this.scene.input.keyboard.on('keydown-Q', callback);
+  }
+
+  /**
+   * Register dash callback
+   */
+  onDash(callback) {
+    this.dashCallback = callback;
+    this.scene.input.keyboard.on('keydown-SHIFT', callback);
+  }
+
+  /**
+   * Register surface callback (ESC key for voluntary surface)
+   */
+  onSurface(callback) {
+    this.surfaceCallback = callback;
+    // ESC already registered for pause, this will be an alternative handler
+  }
+
+  /**
+   * Check if attack button is pressed
+   */
+  isAttackPressed() {
+    if (!this.enabled || !this.keys.Q) return false;
+    return this.keys.Q.isDown;
+  }
+
+  /**
+   * Check if dash button is pressed
+   */
+  isDashPressed() {
+    if (!this.enabled || !this.keys.SHIFT) return false;
+    return this.keys.SHIFT.isDown;
   }
   
   /**
@@ -175,10 +223,15 @@ export default class InputHandler {
     this.keys.D.isDown = false;
     this.keys.SPACE.isDown = false;
     this.keys.ESC.isDown = false;
+    this.keys.Q.isDown = false;
+    this.keys.SHIFT.isDown = false;
     
     // Clear just-pressed flags
     this.justPressed = {
-      interact: false
+      interact: false,
+      attack: false,
+      dash: false,
+      surface: false
     };
   }
   
@@ -199,6 +252,12 @@ export default class InputHandler {
     }
     if (this.pauseCallback) {
       this.scene.input.keyboard.off('keydown-ESCAPE', this.pauseCallback);
+    }
+    if (this.attackCallback) {
+      this.scene.input.keyboard.off('keydown-Q', this.attackCallback);
+    }
+    if (this.dashCallback) {
+      this.scene.input.keyboard.off('keydown-SHIFT', this.dashCallback);
     }
   }
 }

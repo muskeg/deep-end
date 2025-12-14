@@ -82,12 +82,16 @@ export const COLORS = {
   CURRENT: 0x66d9ff,
   OXYGEN_FULL: 0x00ff00,
   OXYGEN_WARNING: 0xffaa00,
-  OXYGEN_CRITICAL: 0xff0000
+  OXYGEN_CRITICAL: 0xff0000,
+  HARPOON: 0x888888,
+  HARPOON_TIP: 0xCCCCCC,
+  DASH: 0x00FFFF
 };
 
 export const SCENES = {
   BOOT: 'BootScene',
   MENU: 'MenuScene',
+  SHOP: 'ShopScene',
   GAME: 'GameScene',
   GAME_OVER: 'GameOverScene'
 };
@@ -98,10 +102,58 @@ export const INPUTS = {
   LEFT: ['ArrowLeft', 'KeyA'],
   RIGHT: ['ArrowRight', 'KeyD'],
   INTERACT: ['Space'],
-  PAUSE: ['Escape']
+  PAUSE: ['Escape'],
+  ATTACK: ['KeyQ'],
+  DASH: ['ShiftLeft', 'ShiftRight'],
+  SURFACE: ['Escape']
 };
 
-export const PEARL_VALUE = 10; // Base points per pearl
+export const COMBAT_CONFIG = {
+  HARPOON: {
+    BASE_DAMAGE: 20,
+    SPEED: 400, // pixels per second
+    MAX_RANGE: 600, // pixels
+    COOLDOWN: 1000 // ms
+  },
+  DASH: {
+    SPEED_MULTIPLIER: 2.5,
+    DURATION: 500, // ms
+    COOLDOWN: 3000 // ms (5 seconds - will be reduced by upgrades)
+  },
+  ENEMY_HEALTH: {
+    JELLYFISH: 20,
+    SQUID: 40,
+    ANGLERFISH: 60
+  },
+  CHASE: {
+    ABANDON_DISTANCE: 800, // pixels
+    ABANDON_TIME: 10000, // ms (10 seconds)
+    PATHFINDING_UPDATE_RATE: 500 // ms (0.5 seconds)
+  }
+};
+
+export const ZONE_CONFIG = {
+  SUNLIGHT: {
+    MIN_DEPTH: 0,
+    MAX_DEPTH: 500
+  },
+  TWILIGHT: {
+    MIN_DEPTH: 500,
+    MAX_DEPTH: 1500
+  },
+  MIDNIGHT: {
+    MIN_DEPTH: 1500,
+    MAX_DEPTH: 10000
+  },
+  TRANSITION_DISTANCE: 100 // pixels for smooth lerp transitions
+};
+
+export const UPGRADE_CONFIG = {
+  BASE_COST_MULTIPLIER: 1.5, // Exponential cost scaling
+  SAVE_VERSION: 1 // For LocalStorage schema migrations
+};
+
+export const PEARL_VALUE = 10; // Base points per pearl (deprecated - now zone-based: 1/5/20)
 
 export const FPS_TARGET = 60;
 

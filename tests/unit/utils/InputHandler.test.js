@@ -213,8 +213,8 @@ describe('InputHandler', () => {
       
       handler.onPause(callback);
       
-      expect(mockScene.input.keyboard.once).toHaveBeenCalledWith(
-        'keydown-ESC',
+      expect(mockScene.input.keyboard.on).toHaveBeenCalledWith(
+        'keydown-ESCAPE',
         callback
       );
     });

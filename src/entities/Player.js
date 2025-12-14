@@ -1,12 +1,13 @@
 import Phaser from 'phaser';
-import { PLAYER_CONFIG, OXYGEN_CONFIG, COLORS } from '../utils/Constants.js';
+import { PLAYER_CONFIG, OXYGEN_CONFIG, COLORS, COMBAT_CONFIG } from '../utils/Constants.js';
+import Harpoon from './Harpoon.js';
 
 /**
  * Player Entity
  * Controllable diver character with movement, oxygen management, and pearl collection
  */
 export default class Player extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, y) {
+  constructor(scene, x, y, upgradeParams = {}) {
     super(scene, x, y);
     
     this.scene = scene;
@@ -15,14 +16,44 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     
     // Visual representation (circle for now)
     this.graphics = scene.add.graphics();
+    this.graphics.setPipeline('Light2D'); // Enable lighting
     this.updateVisuals();
     
     // Physics properties
     this.setCollideWorldBounds(true);
     this.body.setCircle(PLAYER_CONFIG.COLLISION_RADIUS);
     
+    // Upgrade multipliers and bonuses (from UpgradeSystem)
+    this.oxygenMultiplier = upgradeParams.oxygenMultiplier || 1.0;
+    this.lightMultiplier = upgradeParams.lightMultiplier || 1.0;
+    this.speedMultiplier = upgradeParams.speedMultiplier || 1.0;
+    this.harpoonDamageBonus = upgradeParams.harpoonDamageBonus || 0;
+    this.dashCooldownReduction = upgradeParams.dashCooldownReduction || 0;
+    this.sonarRangeBonus = upgradeParams.sonarRangeBonus || 0;
+    
+    // Combat abilities
+    this.dashAbility = {
+      cooldown: Math.max(500, COMBAT_CONFIG.DASH.COOLDOWN - this.dashCooldownReduction),
+      currentCooldown: 0,
+      boostMultiplier: COMBAT_CONFIG.DASH.SPEED_MULTIPLIER,
+      duration: COMBAT_CONFIG.DASH.DURATION,
+      active: false,
+      startTime: 0
+    };
+    
+    this.harpoonAbility = {
+      cooldown: COMBAT_CONFIG.HARPOON.COOLDOWN,
+      currentCooldown: 0,
+      damage: COMBAT_CONFIG.HARPOON.BASE_DAMAGE
+    };
+    
+    // Track last facing direction for harpoon
+    this.facingX = 0;
+    this.facingY = 1; // Default facing down
+    
     // Game state
-    this.oxygen = PLAYER_CONFIG.INITIAL_OXYGEN;
+    this.oxygen = PLAYER_CONFIG.INITIAL_OXYGEN * this.oxygenMultiplier;
+    this.maxOxygen = PLAYER_CONFIG.INITIAL_OXYGEN * this.oxygenMultiplier;
     this.score = 0;
     this.pearlsCollected = 0;
     this.isInvulnerable = false;
@@ -45,6 +76,12 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     if (input.up) velocityY -= 1;
     if (input.down) velocityY += 1;
     
+    // Track facing direction for harpoon
+    if (velocityX !== 0 || velocityY !== 0) {
+      this.facingX = velocityX;
+      this.facingY = velocityY;
+    }
+    
     // Normalize diagonal movement
     if (velocityX !== 0 && velocityY !== 0) {
       const magnitude = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
@@ -52,9 +89,16 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       velocityY /= magnitude;
     }
     
-    // Apply speed
-    this.body.velocity.x = velocityX * PLAYER_CONFIG.SPEED;
-    this.body.velocity.y = velocityY * PLAYER_CONFIG.SPEED;
+    // Apply speed with upgrade multiplier
+    let speed = PLAYER_CONFIG.SPEED * this.speedMultiplier;
+    
+    // Apply dash boost if active
+    if (this.dashAbility.active) {
+      speed *= this.dashAbility.boostMultiplier;
+    }
+    
+    this.body.velocity.x = velocityX * speed;
+    this.body.velocity.y = velocityY * speed;
   }
   
   /**
@@ -139,6 +183,93 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.updateVisuals();
       this.lastX = this.x;
       this.lastY = this.y;
+    }
+  }
+  
+  /**
+   * Activate dash ability (speed boost)
+   * @returns {boolean} True if dash was activated
+   */
+  activateDash() {
+    // Check if on cooldown
+    if (this.dashAbility.currentCooldown > 0 || this.dashAbility.active) {
+      return false;
+    }
+    
+    // Start dash
+    this.dashAbility.active = true;
+    this.dashAbility.startTime = Date.now();
+    this.dashAbility.currentCooldown = this.dashAbility.cooldown;
+    
+    console.log(`Dash activated! Boost: ${this.dashAbility.boostMultiplier}x for ${this.dashAbility.duration}ms`);
+    
+    // Visual effect
+    this.createDashEffect();
+    
+    return true;
+  }
+  
+  /**
+   * Create visual effect for dash
+   */
+  createDashEffect() {
+    // Temporarily disabled - just log for now
+    console.log('Dash activated!');
+    // TODO: Fix visual effect that was filling the screen
+  }
+  
+  /**
+   * Fire harpoon weapon
+   * @returns {Harpoon|null} The fired harpoon, or null if on cooldown
+   */
+  fireHarpoon() {
+    // Check if on cooldown
+    if (this.harpoonAbility.currentCooldown > 0) {
+      return null;
+    }
+    
+    // Create harpoon at player position
+    const harpoon = new Harpoon(this.scene, this.x, this.y);
+    
+    // Fire in last facing direction
+    harpoon.fire(this.facingX, this.facingY, this.harpoonDamageBonus);
+    
+    // Start cooldown
+    this.harpoonAbility.currentCooldown = this.harpoonAbility.cooldown;
+    
+    console.log(`Harpoon fired in direction (${this.facingX.toFixed(2)}, ${this.facingY.toFixed(2)})`);
+    
+    return harpoon;
+  }
+  
+  /**
+   * Update ability cooldowns
+   * @param {number} deltaTime - Time elapsed in milliseconds
+   */
+  updateAbilities(deltaTime) {
+    // Update dash cooldown
+    if (this.dashAbility.currentCooldown > 0) {
+      this.dashAbility.currentCooldown -= deltaTime;
+      if (this.dashAbility.currentCooldown < 0) {
+        this.dashAbility.currentCooldown = 0;
+      }
+    }
+    
+    // Check if dash duration expired
+    if (this.dashAbility.active) {
+      const elapsed = Date.now() - this.dashAbility.startTime;
+      if (elapsed >= this.dashAbility.duration) {
+        this.dashAbility.active = false;
+        console.log('Dash ended');
+      }
+    }
+    
+    // Update harpoon cooldown
+    if (this.harpoonAbility.currentCooldown > 0) {
+      this.harpoonAbility.currentCooldown -= deltaTime;
+      if (this.harpoonAbility.currentCooldown < 0) {
+        this.harpoonAbility.currentCooldown = 0;
+      }
     }
   }
   

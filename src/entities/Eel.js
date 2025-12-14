@@ -14,9 +14,13 @@ export default class Eel extends Enemy {
    * @param {number} y - Initial y position
    * @param {Phaser.Physics.Arcade.Sprite} player - Reference to the player
    * @param {{x: number, y: number}} hidingPosition - Position to return to (defaults to start position)
+   * @param {object} multipliers - Zone-based difficulty multipliers
    */
-  constructor(scene, x, y, player, hidingPosition = null) {
+  constructor(scene, x, y, player, hidingPosition = null, multipliers = {}) {
     super(scene, x, y, player, ENEMY_CONFIG.EEL.DETECTION_RADIUS);
+    
+    // Apply zone multipliers
+    const { speedMultiplier = 1.0, damageMultiplier = 1.0 } = multipliers;
     
     // Hiding position (resting spot)
     this.hidingPosition = hidingPosition || { x, y };
@@ -24,9 +28,9 @@ export default class Eel extends Enemy {
     // State machine
     this.state = 'idle'; // idle, chasing, lunging, returning
     
-    // Movement speeds
-    this.chaseSpeed = ENEMY_CONFIG.EEL.CHASE_SPEED;
-    this.lungeSpeed = ENEMY_CONFIG.EEL.LUNGE_SPEED;
+    // Movement speeds (with zone multiplier)
+    this.chaseSpeed = ENEMY_CONFIG.EEL.CHASE_SPEED * speedMultiplier;
+    this.lungeSpeed = ENEMY_CONFIG.EEL.LUNGE_SPEED * speedMultiplier;
     
     // Lunge attack configuration
     this.lungeRange = ENEMY_CONFIG.EEL.LUNGE_RANGE;
@@ -38,17 +42,46 @@ export default class Eel extends Enemy {
     
     // Hiding position reach threshold
     this.hideReachThreshold = 10;
+    
+    // Damage (with zone multiplier)
+    this.contactDamage = (ENEMY_CONFIG.EEL.CONTACT_DAMAGE || 15) * damageMultiplier;
   }
   
   /**
-   * Execute chase behavior - pursue the player
+   * Execute chase behavior - pursue the player using pathfinding
    * @param {number} delta - Delta time in milliseconds
    */
   chase(delta) {
-    const direction = this.getDirectionToPlayer();
+    // Try to use pathfinding waypoint first
+    const waypoint = this.getNextWaypoint();
     
-    this.body.velocity.x = direction.x * this.chaseSpeed;
-    this.body.velocity.y = direction.y * this.chaseSpeed;
+    let targetX, targetY;
+    if (waypoint) {
+      // Follow pathfinding waypoint
+      targetX = waypoint.x;
+      targetY = waypoint.y;
+    } else {
+      // Fallback to direct pursuit if no path
+      targetX = this.player.x;
+      targetY = this.player.y;
+    }
+    
+    // Calculate direction to target
+    const dx = targetX - this.x;
+    const dy = targetY - this.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance === 0) {
+      this.body.velocity.x = 0;
+      this.body.velocity.y = 0;
+      return;
+    }
+    
+    const directionX = dx / distance;
+    const directionY = dy / distance;
+    
+    this.body.velocity.x = directionX * this.chaseSpeed;
+    this.body.velocity.y = directionY * this.chaseSpeed;
   }
   
   /**

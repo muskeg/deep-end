@@ -365,3 +365,51 @@ Terminal 3: Pearl.js (T026)
 - **Total**: 11-17 days
 
 **Status**: Ready for `/speckit.implement` command to begin execution
+
+---
+
+## Phase 8: Map Redesign & Lighting System ✅ COMPLETE
+
+**Purpose**: Transform map format for deep vertical exploration with realistic lighting
+
+**✅ SUCCESS**: Map redesigned to 4K fixed width with 10x depth, Phaser lighting system implemented
+
+- [X] T106 Update map dimensions to fixed 3840px width and 10x viewport height in GameScene.js
+- [X] T107 [P] Modify CavernGenerator to preserve 10% wall-free zone below surface (top 3% surface + 7% open water)
+- [X] T108 [P] Update CavernGenerator smoothing algorithm to maintain 10% wall-free zone during iterations
+- [X] T109 Create invisible physics colliders at 3% surface line to prevent entity movement above water
+- [X] T110 [P] Filter entity spawn positions to exclude surface zone (top 3%) in GameScene.js
+- [X] T111 Enable Phaser Light2D pipeline on all game entities (Player, Enemy, Clam, Pearl, WaterCurrent, Wall)
+- [X] T112 [P] Set ambient lighting to blue-tinted color (0x4488aa) for underwater sunlight effect
+- [X] T113 Create sunlight sources positioned above viewport (Y = -200) with 2000px radius
+- [X] T114 [P] Implement player equipment light (300px radius, warm yellow, follows player)
+- [X] T115 Update background, water surface, and surface line to use Light2D pipeline
+- [X] T116 Remove darkness overlay system and rely on lighting-based depth effect
+- [X] T117 [P] Test lighting system at various depths to verify natural illumination gradient
+- [X] T118 [P] Verify entity boundary enforcement prevents surface violations
+
+**Phase 8 Outcomes**:
+- Map format supports deep vertical exploration gameplay
+- Realistic underwater lighting with sunlight from above
+- Player equipment provides local illumination in dark depths
+- Wall-free swimming zone below surface for better navigation
+- All entities properly constrained underwater via physics
+
+---
+
+## Updated Summary
+
+**Total Tasks**: 118
+- Phase 1 (Setup): 8 tasks
+- Phase 2 (Foundation): 9 tasks
+- Phase 3 (US1 - MVP): 23 tasks
+- Phase 4 (US2): 13 tasks
+- Phase 5 (US3): 17 tasks
+- Phase 6 (US4): 17 tasks
+- Phase 7 (Polish): 18 tasks
+- Phase 8 (Map & Lighting): 13 tasks
+
+**Parallel Opportunities**: 42+ tasks can run in parallel (marked with [P])
+
+**Status**: Phase 8 Complete - Game ready for production deployment with enhanced visuals
+

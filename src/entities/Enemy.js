@@ -4,7 +4,7 @@
  */
 
 import Phaser from 'phaser';
-import { ENEMY_CONFIG } from '../utils/Constants.js';
+import { ENEMY_CONFIG, COMBAT_CONFIG } from '../utils/Constants.js';
 
 export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   /**
@@ -22,8 +22,24 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.player = player;
     this.detectionRadius = detectionRadius;
     
+    // Health system
+    this.maxHealth = 20; // Default, overridden by subclasses
+    this.health = this.maxHealth;
+    
     // Target acquisition state
     this.hasTarget = false;
+    
+    // Chase state
+    this.chaseTimer = 0;
+    this.chaseDistance = 0;
+    this.chaseAbandonDistance = COMBAT_CONFIG.CHASE.ABANDON_DISTANCE;
+    this.chaseAbandonTime = COMBAT_CONFIG.CHASE.ABANDON_TIME;
+    
+    // Pathfinding
+    this.currentPath = [];
+    this.pathIndex = 0;
+    this.lastPathfindTime = 0;
+    this.pathfindingInterval = COMBAT_CONFIG.CHASE.PATHFINDING_UPDATE_RATE;
     
     // Attack cooldown
     this.attackCooldown = ENEMY_CONFIG.ATTACK_COOLDOWN;
@@ -39,8 +55,12 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     // Set up physics body
     this.body.setCircle(16);
     
+    // Hide the sprite itself (we use graphics for visuals)
+    this.setAlpha(0);
+    
     // Visual representation (placeholder)
     this.graphics = scene.add.graphics();
+    this.graphics.setPipeline('Light2D'); // Enable lighting
     this.updateVisuals();
   }
   
@@ -148,11 +168,122 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.graphics.fillStyle(color, 0.7);
     this.graphics.fillCircle(this.x, this.y, 16);
     
-    // Draw detection radius (when targeting)
-    if (this.hasTarget) {
-      this.graphics.lineStyle(1, 0xff0000, 0.3);
-      this.graphics.strokeCircle(this.x, this.y, this.detectionRadius);
+    // Draw health bar
+    if (this.health < this.maxHealth) {
+      const barWidth = 32;
+      const barHeight = 4;
+      const healthPercent = this.health / this.maxHealth;
+      
+      // Background
+      this.graphics.fillStyle(0x000000, 0.7);
+      this.graphics.fillRect(this.x - barWidth / 2, this.y - 25, barWidth, barHeight);
+      
+      // Health fill
+      this.graphics.fillStyle(healthPercent > 0.5 ? 0x00FF00 : (healthPercent > 0.25 ? 0xFFAA00 : 0xFF0000), 1);
+      this.graphics.fillRect(this.x - barWidth / 2, this.y - 25, barWidth * healthPercent, barHeight);
     }
+  }
+  
+  /**
+   * Take damage from an attack
+   * @param {number} amount - Damage amount
+   * @returns {boolean} True if enemy was killed
+   */
+  takeDamage(amount) {
+    this.health -= amount;
+    
+    // Visual feedback
+    this.flashHit();
+    
+    // Check if killed
+    if (this.health <= 0) {
+      this.health = 0;
+      return true;
+    }
+    
+    return false;
+  }
+  
+  /**
+   * Flash effect when hit
+   */
+  flashHit() {
+    // White flash
+    const flash = this.scene.add.circle(this.x, this.y, 20, 0xFFFFFF, 0.8);
+    flash.setPipeline('Light2D');
+    
+    this.scene.tweens.add({
+      targets: flash,
+      alpha: 0,
+      scale: 1.5,
+      duration: 150,
+      ease: 'Cubic.easeOut',
+      onComplete: () => flash.destroy()
+    });
+  }
+  
+  /**
+   * Check if should abandon chase
+   * @returns {boolean} True if should stop chasing
+   */
+  shouldAbandonChase() {
+    if (!this.hasTarget) return false;
+    
+    const distance = this.getDistanceToPlayer();
+    
+    // Distance check
+    if (distance > this.chaseAbandonDistance) {
+      return true;
+    }
+    
+    // Time check
+    if (this.chaseTimer > this.chaseAbandonTime) {
+      return true;
+    }
+    
+    return false;
+  }
+  
+  /**
+   * Update pathfinding - request new path to player
+   */
+  updatePathfinding() {
+    if (!this.scene.pathfindingSystem || !this.player) return;
+    
+    const path = this.scene.pathfindingSystem.findPath(
+      this.x,
+      this.y,
+      this.player.x,
+      this.player.y
+    );
+    
+    if (path && path.length > 0) {
+      this.currentPath = path;
+      this.pathIndex = 0;
+    }
+  }
+  
+  /**
+   * Get the next pathfinding waypoint
+   * @returns {{x: number, y: number}|null} Next waypoint or null
+   */
+  getNextWaypoint() {
+    if (!this.currentPath || this.pathIndex >= this.currentPath.length) {
+      return null;
+    }
+    
+    const waypoint = this.currentPath[this.pathIndex];
+    const dx = waypoint.x - this.x;
+    const dy = waypoint.y - this.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Move to next waypoint if close enough (30px threshold)
+    if (distance < 30) {
+      this.pathIndex++;
+      return this.getNextWaypoint(); // Recursively get next if we're at this one
+    }
+    
+    return waypoint;
   }
   
   /**
@@ -163,10 +294,31 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   update(time, delta) {
     if (!this.isActive) return;
     
+    // Update chase timer
+    if (this.hasTarget) {
+      this.chaseTimer += delta;
+      
+      // Check if should abandon chase
+      if (this.shouldAbandonChase()) {
+        console.log(`${this.constructor.name} abandoning chase`);
+        this.loseTarget();
+        this.chaseTimer = 0;
+        this.currentPath = null;
+        this.pathIndex = 0;
+      }
+      
+      // Update pathfinding periodically
+      this.lastPathfindTime += delta;
+      if (this.lastPathfindTime >= this.pathfindingInterval) {
+        this.updatePathfinding();
+        this.lastPathfindTime = 0;
+      }
+    }
+    
     // Check player detection
     if (this.canDetectPlayer()) {
       this.acquireTarget();
-    } else {
+    } else if (!this.hasTarget) {
       this.loseTarget();
     }
     

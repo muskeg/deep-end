@@ -1,0 +1,70 @@
+{
+  "upgrades": [
+    {
+      "type": "oxygen",
+      "name": "Oxygen Capacity",
+      "description": "Increase maximum oxygen capacity for longer dives",
+      "baseCost": 5,
+      "costMultiplier": 1.5,
+      "effects": {
+        "maxOxygenMultiplier": 0.2
+      },
+      "icon": "oxygen-tank"
+    },
+    {
+      "type": "light",
+      "name": "Light Radius",
+      "description": "Expand your light radius to see further in dark depths",
+      "baseCost": 5,
+      "costMultiplier": 1.5,
+      "effects": {
+        "lightRadiusMultiplier": 0.25
+      },
+      "icon": "flashlight"
+    },
+    {
+      "type": "speed",
+      "name": "Swim Speed",
+      "description": "Swim faster to cover more distance and escape danger",
+      "baseCost": 5,
+      "costMultiplier": 1.5,
+      "effects": {
+        "speedMultiplier": 0.15
+      },
+      "icon": "fins"
+    },
+    {
+      "type": "harpoon",
+      "name": "Harpoon Damage",
+      "description": "Increase harpoon damage to defeat enemies faster",
+      "baseCost": 8,
+      "costMultiplier": 1.5,
+      "effects": {
+        "harpoonDamageBonus": 5
+      },
+      "icon": "harpoon"
+    },
+    {
+      "type": "dash",
+      "name": "Dash Cooldown",
+      "description": "Reduce dash ability cooldown for more frequent escapes",
+      "baseCost": 8,
+      "costMultiplier": 1.5,
+      "effects": {
+        "dashCooldownReduction": 0.5
+      },
+      "icon": "speedboost"
+    },
+    {
+      "type": "sonar",
+      "name": "Sonar Range",
+      "description": "Detect clams and pearls from greater distances",
+      "baseCost": 10,
+      "costMultiplier": 1.5,
+      "effects": {
+        "sonarRangeBonus": 100
+      },
+      "icon": "sonar"
+    }
+  ]
+}
