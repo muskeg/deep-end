@@ -77,6 +77,20 @@ export default class ProgressionSystem extends LocalStorageManager {
   }
 
   /**
+   * Increment a statistic by 1
+   * @param {string} statName - Name of the statistic to increment
+   */
+  incrementStat(statName) {
+    if (this.statistics.hasOwnProperty(statName)) {
+      this.statistics[statName]++;
+      this.saveProgress();
+      console.log(`[Progression] ${statName}: ${this.statistics[statName]}`);
+    } else {
+      console.warn(`[Progression] Unknown statistic: ${statName}`);
+    }
+  }
+
+  /**
    * Purchase an upgrade
    * @param {string} upgradeType - Type of upgrade to purchase
    * @returns {boolean} Success status

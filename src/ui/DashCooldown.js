@@ -18,6 +18,9 @@ export default class DashCooldown extends Phaser.GameObjects.Container {
     this.scene = scene;
     scene.add.existing(this);
     
+    // Set depth to render above game objects
+    this.setDepth(1000);
+    
     // Cooldown state
     this.maxCooldown = 3000; // 3 seconds in milliseconds
     this.currentCooldown = 0;
@@ -29,6 +32,7 @@ export default class DashCooldown extends Phaser.GameObjects.Container {
     
     // Cooldown bar background
     this.barBg = scene.add.rectangle(-50, 10, 100, 12, 0x333333, 1);
+    this.barBg.setOrigin(0, 0.5);
     this.add(this.barBg);
     
     // Cooldown bar fill
@@ -103,16 +107,23 @@ export default class DashCooldown extends Phaser.GameObjects.Container {
       // Show cooldown progress
       const progress = 1 - (this.currentCooldown / this.maxCooldown);
       this.barFill.displayWidth = 100 * progress;
-      this.barFill.setTint(0x888888);
+      this.barFill.setFillStyle(0x888888, 1);
       
       // Show remaining time
       const seconds = (this.currentCooldown / 1000).toFixed(1);
       this.readyText.setText(`${seconds}s`);
       this.readyText.setColor('#FF8800');
+      
+      // Stop pulse effect if active
+      if (this.readyPulse) {
+        this.readyPulse.remove();
+        this.readyPulse = null;
+        this.readyText.setAlpha(1);
+      }
     } else {
       // Show ready state
       this.barFill.displayWidth = 100;
-      this.barFill.clearTint();
+      this.barFill.setFillStyle(COLORS.DASH || 0x00FFFF, 1);
       this.readyText.setText('READY');
       this.readyText.setColor('#00FF00');
       

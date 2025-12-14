@@ -48,14 +48,40 @@ export default class Eel extends Enemy {
   }
   
   /**
-   * Execute chase behavior - pursue the player
+   * Execute chase behavior - pursue the player using pathfinding
    * @param {number} delta - Delta time in milliseconds
    */
   chase(delta) {
-    const direction = this.getDirectionToPlayer();
+    // Try to use pathfinding waypoint first
+    const waypoint = this.getNextWaypoint();
     
-    this.body.velocity.x = direction.x * this.chaseSpeed;
-    this.body.velocity.y = direction.y * this.chaseSpeed;
+    let targetX, targetY;
+    if (waypoint) {
+      // Follow pathfinding waypoint
+      targetX = waypoint.x;
+      targetY = waypoint.y;
+    } else {
+      // Fallback to direct pursuit if no path
+      targetX = this.player.x;
+      targetY = this.player.y;
+    }
+    
+    // Calculate direction to target
+    const dx = targetX - this.x;
+    const dy = targetY - this.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance === 0) {
+      this.body.velocity.x = 0;
+      this.body.velocity.y = 0;
+      return;
+    }
+    
+    const directionX = dx / distance;
+    const directionY = dy / distance;
+    
+    this.body.velocity.x = directionX * this.chaseSpeed;
+    this.body.velocity.y = directionY * this.chaseSpeed;
   }
   
   /**

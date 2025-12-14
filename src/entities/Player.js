@@ -35,7 +35,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.dashAbility = {
       cooldown: Math.max(500, COMBAT_CONFIG.DASH.COOLDOWN - this.dashCooldownReduction),
       currentCooldown: 0,
-      boostMultiplier: COMBAT_CONFIG.DASH.BOOST_MULTIPLIER,
+      boostMultiplier: COMBAT_CONFIG.DASH.SPEED_MULTIPLIER,
       duration: COMBAT_CONFIG.DASH.DURATION,
       active: false,
       startTime: 0
@@ -43,7 +43,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     
     this.harpoonAbility = {
       cooldown: COMBAT_CONFIG.HARPOON.COOLDOWN,
-      currentCooldown: 0
+      currentCooldown: 0,
+      damage: COMBAT_CONFIG.HARPOON.BASE_DAMAGE
     };
     
     // Track last facing direction for harpoon
@@ -212,31 +213,9 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
    * Create visual effect for dash
    */
   createDashEffect() {
-    // Speed lines effect
-    for (let i = 0; i < 8; i++) {
-      const angle = (Math.PI * 2 * i) / 8;
-      const distance = 30;
-      
-      const line = this.scene.add.line(
-        this.x,
-        this.y,
-        0, 0,
-        Math.cos(angle) * distance,
-        Math.sin(angle) * distance,
-        COLORS.DASH,
-        0.8
-      );
-      line.setLineWidth(2);
-      line.setPipeline('Light2D');
-      
-      this.scene.tweens.add({
-        targets: line,
-        alpha: 0,
-        duration: 300,
-        ease: 'Cubic.easeOut',
-        onComplete: () => line.destroy()
-      });
-    }
+    // Temporarily disabled - just log for now
+    console.log('Dash activated!');
+    // TODO: Fix visual effect that was filling the screen
   }
   
   /**

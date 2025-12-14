@@ -20,7 +20,6 @@ import ScoreManager from '../utils/ScoreManager.js';
 import AudioManager from '../utils/AudioManager.js';
 import ProgressionSystem from '../systems/ProgressionSystem.js';
 import OxygenMeter from '../ui/OxygenMeter.js';
-import ScoreDisplay from '../ui/ScoreDisplay.js';
 import DepthMeter from '../ui/DepthMeter.js';
 import DashCooldown from '../ui/DashCooldown.js';
 import FPSDisplay from '../ui/FPSDisplay.js';
@@ -192,13 +191,9 @@ export default class GameScene extends Phaser.Scene {
     this.oxygenMeter = new OxygenMeter(this, width - 220, 16);
     this.oxygenMeter.setScrollFactor(0);
     
-    this.scoreDisplay = new ScoreDisplay(this, 16, 16);
-    this.scoreDisplay.setScrollFactor(0);
-    
     // Dash cooldown UI
     this.dashCooldownUI = new DashCooldown(this, width - 220, 200);
     this.dashCooldownUI.setScrollFactor(0);
-    this.scoreDisplay.updateLevel(this.currentLevel);
     
     // Depth meter UI
     this.depthMeter = new DepthMeter(this, width - 220, 100);
@@ -209,9 +204,6 @@ export default class GameScene extends Phaser.Scene {
     
     // Generate procedural cavern
     this.generateProceduralCavern();
-    
-    // Update pearl count after cavern generation
-    this.scoreDisplay.updatePearlCount(this.collectedPearls, this.totalPearls);
     
     // Create pause overlay (hidden by default)
     this.createPauseOverlay();
@@ -551,14 +543,7 @@ export default class GameScene extends Phaser.Scene {
       this.progressionSystem.addPearls(value || 1);
       
       this.audioManager.playPearlCollect();
-      console.log(`Pearl collected! Count: ${this.collectedPearls}/${this.totalPearls}`);
-      this.scoreDisplay.updatePearlCount(this.collectedPearls, this.totalPearls);
-      
-      // Check victory condition (optional in roguelike mode)
-      if (this.collectedPearls >= this.totalPearls) {
-        console.log('Victory! All pearls collected.');
-        this.endGame(true);
-      }
+      console.log(`Pearl collected! Total pearls: ${this.progressionSystem.getPearls()}`);
     });
     
     // Pearl dispensed from clam
@@ -745,9 +730,6 @@ export default class GameScene extends Phaser.Scene {
     if (this.oxygenMeter) {
       this.oxygenMeter.setScrollFactor(0);
     }
-    if (this.scoreDisplay) {
-      this.scoreDisplay.setScrollFactor(0);
-    }
     if (this.levelText) {
       this.levelText.setScrollFactor(0);
     }
@@ -768,8 +750,12 @@ export default class GameScene extends Phaser.Scene {
     
     console.log(`Dive ended: ${victory ? 'Victory!' : 'Oxygen depleted'}`);
     
-    // Roguelike mode: always return to shop (keep pearls)
-    this.audioManager.playGameOver();
+    // Play appropriate audio
+    if (victory) {
+      this.audioManager.playLevelComplete();
+    } else {
+      this.audioManager.playGameOver();
+    }
     
     // Fade to shop scene
     this.cameras.main.fadeOut(500, 0, 0, 0);
@@ -792,6 +778,9 @@ export default class GameScene extends Phaser.Scene {
     }
     
     console.log('[GameScene] Surfacing voluntarily - returning to shop');
+    
+    // Play victory audio for successful escape
+    this.audioManager.playLevelComplete();
     
     // Fade to shop scene
     this.cameras.main.fadeOut(500, 0, 0, 0);

@@ -105,30 +105,30 @@
 
 ### Implementation for User Story 3
 
-- [ ] T039 [P] [US3] Create `src/entities/Harpoon.js` class extending Phaser.Physics.Arcade.Sprite with fire(x, y, directionX, directionY), onEnemyCollision(enemy) methods
-- [ ] T040 [P] [US3] Create `src/systems/PathfindingSystem.js` class with findPath(startX, startY, targetX, targetY, grid), manhattanDistance(x1, y1, x2, y2), buildGrid(walls) methods
-- [ ] T041 [P] [US3] Create `src/systems/CombatSystem.js` class with dealDamage(entity, amount), onEnemyKilled(enemy) methods
-- [ ] T042 [P] [US3] Create `src/ui/DashCooldown.js` class with startCooldown(duration), update(deltaTime), canActivate() methods
-- [ ] T043 [US3] In Player.js, add dashAbility property with cooldown timer, boostMultiplier (2.5x), duration (0.5s)
-- [ ] T044 [US3] In Player.js, add activateDash() method that multiplies speed, starts visual effect, begins cooldown
-- [ ] T045 [US3] In InputHandler, on Shift key press, call player.activateDash() if cooldown ready
-- [ ] T046 [US3] In Player.js, add fireHarpoon() method that spawns Harpoon entity in facing direction
-- [ ] T047 [US3] In InputHandler, on Q key press, call player.fireHarpoon()
-- [ ] T048 [US3] In Harpoon.fire(), set velocity (400px/s), start max range timer (600px), add self-destruct after range
-- [ ] T049 [US3] In GameScene, add arcade physics overlap between harpoon group and enemy group
-- [ ] T050 [US3] In Harpoon.onEnemyCollision(), call CombatSystem.dealDamage(enemy, harpoonDamage), destroy harpoon
-- [ ] T051 [US3] Update Enemy.js to add health property, takeDamage(amount) method, visual hit feedback (flash/shake)
-- [ ] T052 [US3] In CombatSystem.dealDamage(), reduce enemy health, check if health <= 0, call onEnemyKilled()
-- [ ] T053 [US3] In CombatSystem.onEnemyKilled(), spawn pearl at enemy position, destroy enemy, play death effect
-- [ ] T054 [US3] In Enemy.js, add pathfinding property and currentPath array
-- [ ] T055 [US3] In Enemy.js updateAI() method, call PathfindingSystem.findPath() every 0.5 seconds to player position
-- [ ] T056 [US3] In PathfindingSystem.findPath(), implement A* algorithm with Manhattan distance heuristic
-- [ ] T057 [US3] In PathfindingSystem.buildGrid(), convert wall positions to 2D grid for pathfinding (0=open, 1=blocked)
-- [ ] T058 [US3] In Enemy.js, add chase timer (10s) and distance threshold (800px) for abandoning chase
-- [ ] T059 [US3] In Enemy.js, add shouldAbandonChase() method checking timer and distance conditions
-- [ ] T060 [US3] In Enemy.js updateAI(), call shouldAbandonChase(), return to patrol behavior if true
-- [ ] T061 [US3] Add DashCooldown UI element to GameScene HUD showing visual cooldown progress
-- [ ] T062 [US3] Update UpgradeSystem to apply harpoon damage and dash cooldown upgrades when purchased
+- [X] T039 [P] [US3] Create `src/entities/Harpoon.js` class extending Phaser.Physics.Arcade.Sprite with fire(x, y, directionX, directionY), onEnemyCollision(enemy) methods
+- [X] T040 [P] [US3] Create `src/systems/PathfindingSystem.js` class with findPath(startX, startY, targetX, targetY, grid), manhattanDistance(x1, y1, x2, y2), buildGrid(walls) methods
+- [X] T041 [P] [US3] Create `src/systems/CombatSystem.js` class with dealDamage(entity, amount), onEnemyKilled(enemy) methods
+- [X] T042 [P] [US3] Create `src/ui/DashCooldown.js` class with startCooldown(duration), update(deltaTime), canActivate() methods
+- [X] T043 [US3] In Player.js, add dashAbility property with cooldown timer, boostMultiplier (2.5x), duration (0.5s)
+- [X] T044 [US3] In Player.js, add activateDash() method that multiplies speed, starts visual effect, begins cooldown
+- [X] T045 [US3] In InputHandler, on Shift key press, call player.activateDash() if cooldown ready
+- [X] T046 [US3] In Player.js, add fireHarpoon() method that spawns Harpoon entity in facing direction
+- [X] T047 [US3] In InputHandler, on Q key press, call player.fireHarpoon()
+- [X] T048 [US3] In Harpoon.fire(), set velocity (400px/s), start max range timer (600px), add self-destruct after range
+- [X] T049 [US3] In GameScene, add arcade physics overlap between harpoon group and enemy group
+- [X] T050 [US3] In Harpoon.onEnemyCollision(), call CombatSystem.dealDamage(enemy, harpoonDamage), destroy harpoon
+- [X] T051 [US3] Update Enemy.js to add health property, takeDamage(amount) method, visual hit feedback (flash/shake)
+- [X] T052 [US3] In CombatSystem.dealDamage(), reduce enemy health, check if health <= 0, call onEnemyKilled()
+- [X] T053 [US3] In CombatSystem.onEnemyKilled(), spawn pearl at enemy position, destroy enemy, play death effect
+- [X] T054 [US3] In Enemy.js, add pathfinding property and currentPath array
+- [X] T055 [US3] In Enemy.js updateAI() method, call PathfindingSystem.findPath() every 0.5 seconds to player position
+- [X] T056 [US3] In PathfindingSystem.findPath(), implement A* algorithm with Manhattan distance heuristic
+- [X] T057 [US3] In PathfindingSystem.buildGrid(), convert wall positions to 2D grid for pathfinding (0=open, 1=blocked)
+- [X] T058 [US3] In Enemy.js, add chase timer (10s) and distance threshold (800px) for abandoning chase
+- [X] T059 [US3] In Enemy.js, add shouldAbandonChase() method checking timer and distance conditions
+- [X] T060 [US3] In Enemy.js updateAI(), call shouldAbandonChase(), return to patrol behavior if true
+- [X] T061 [US3] Add DashCooldown UI element to GameScene HUD showing visual cooldown progress
+- [X] T062 [US3] Update UpgradeSystem to apply harpoon damage and dash cooldown upgrades when purchased
 
 **Checkpoint**: User Story 3 complete - Combat system functional with tactical harpoon/dash gameplay and improved AI
 

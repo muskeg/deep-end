@@ -23,7 +23,7 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.detectionRadius = detectionRadius;
     
     // Health system
-    this.maxHealth = COMBAT_CONFIG.ENEMY_HEALTH.BASIC || 20;
+    this.maxHealth = 20; // Default, overridden by subclasses
     this.health = this.maxHealth;
     
     // Target acquisition state
@@ -32,14 +32,14 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     // Chase state
     this.chaseTimer = 0;
     this.chaseDistance = 0;
-    this.chaseAbandonDistance = COMBAT_CONFIG.CHASE.ABANDON_DISTANCE || 800;
-    this.chaseAbandonTime = COMBAT_CONFIG.CHASE.ABANDON_TIME || 10000; // 10 seconds
+    this.chaseAbandonDistance = COMBAT_CONFIG.CHASE.ABANDON_DISTANCE;
+    this.chaseAbandonTime = COMBAT_CONFIG.CHASE.ABANDON_TIME;
     
     // Pathfinding
     this.currentPath = [];
     this.pathIndex = 0;
     this.lastPathfindTime = 0;
-    this.pathfindingInterval = COMBAT_CONFIG.CHASE.PATHFINDING_UPDATE_INTERVAL || 500; // 0.5 seconds
+    this.pathfindingInterval = COMBAT_CONFIG.CHASE.PATHFINDING_UPDATE_RATE;
     
     // Attack cooldown
     this.attackCooldown = ENEMY_CONFIG.ATTACK_COOLDOWN;
@@ -54,6 +54,9 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     
     // Set up physics body
     this.body.setCircle(16);
+    
+    // Hide the sprite itself (we use graphics for visuals)
+    this.setAlpha(0);
     
     // Visual representation (placeholder)
     this.graphics = scene.add.graphics();
@@ -165,12 +168,6 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.graphics.fillStyle(color, 0.7);
     this.graphics.fillCircle(this.x, this.y, 16);
     
-    // Draw detection radius (when targeting)
-    if (this.hasTarget) {
-      this.graphics.lineStyle(1, 0xff0000, 0.3);
-      this.graphics.strokeCircle(this.x, this.y, this.detectionRadius);
-    }
-    
     // Draw health bar
     if (this.health < this.maxHealth) {
       const barWidth = 32;
@@ -248,6 +245,48 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
   
   /**
+   * Update pathfinding - request new path to player
+   */
+  updatePathfinding() {
+    if (!this.scene.pathfindingSystem || !this.player) return;
+    
+    const path = this.scene.pathfindingSystem.findPath(
+      this.x,
+      this.y,
+      this.player.x,
+      this.player.y
+    );
+    
+    if (path && path.length > 0) {
+      this.currentPath = path;
+      this.pathIndex = 0;
+    }
+  }
+  
+  /**
+   * Get the next pathfinding waypoint
+   * @returns {{x: number, y: number}|null} Next waypoint or null
+   */
+  getNextWaypoint() {
+    if (!this.currentPath || this.pathIndex >= this.currentPath.length) {
+      return null;
+    }
+    
+    const waypoint = this.currentPath[this.pathIndex];
+    const dx = waypoint.x - this.x;
+    const dy = waypoint.y - this.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Move to next waypoint if close enough (30px threshold)
+    if (distance < 30) {
+      this.pathIndex++;
+      return this.getNextWaypoint(); // Recursively get next if we're at this one
+    }
+    
+    return waypoint;
+  }
+  
+  /**
    * Main update loop - override in subclasses
    * @param {number} time - Current game time
    * @param {number} delta - Delta time since last frame
@@ -264,6 +303,15 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
         console.log(`${this.constructor.name} abandoning chase`);
         this.loseTarget();
         this.chaseTimer = 0;
+        this.currentPath = null;
+        this.pathIndex = 0;
+      }
+      
+      // Update pathfinding periodically
+      this.lastPathfindTime += delta;
+      if (this.lastPathfindTime >= this.pathfindingInterval) {
+        this.updatePathfinding();
+        this.lastPathfindTime = 0;
       }
     }
     

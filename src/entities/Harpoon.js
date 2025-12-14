@@ -21,9 +21,9 @@ export default class Harpoon extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     
     // Combat properties
-    this.damage = COMBAT_CONFIG.HARPOON.DAMAGE;
+    this.damage = COMBAT_CONFIG.HARPOON.BASE_DAMAGE;
     this.speed = COMBAT_CONFIG.HARPOON.SPEED;
-    this.maxRange = COMBAT_CONFIG.HARPOON.RANGE;
+    this.maxRange = COMBAT_CONFIG.HARPOON.MAX_RANGE;
     this.distanceTraveled = 0;
     this.startPosition = { x, y };
     

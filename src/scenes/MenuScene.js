@@ -62,14 +62,6 @@ export default class MenuScene extends Phaser.Scene {
     continueButton.setOrigin(0.5);
     continueButton.setInteractive({ useHandCursor: true });
     
-    // Show pearl count
-    const pearls = this.progressionSystem.getPearls();
-    const pearlText = this.add.text(width / 2, height / 2 + 55, `Pearls: ${pearls}`, {
-      font: '16px monospace',
-      fill: '#ffdd00'
-    });
-    pearlText.setOrigin(0.5);
-    
     // Hover effects
     continueButton.on('pointerover', () => {
       continueButton.setStyle({ fill: '#00ff00' });
