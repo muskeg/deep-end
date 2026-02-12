@@ -161,3 +161,41 @@ export const AUDIO_VOLUME = {
   SFX: 0.7,
   MUSIC: 0.5
 };
+
+/**
+ * UI Configuration - Consistent styling across all UI elements
+ */
+export const UI_CONFIG = {
+  FONT_FAMILY: 'monospace',
+  FONT: {
+    TITLE: 'bold 48px monospace',
+    HEADER: 'bold 32px monospace',
+    LARGE: 'bold 24px monospace',
+    MEDIUM: 'bold 18px monospace',
+    REGULAR: '16px monospace',
+    SMALL: '14px monospace',
+    TINY: '12px monospace'
+  },
+  DEPTH: {
+    HUD: 1000,         // In-game HUD elements
+    HUD_TEXT: 1001,     // HUD text on top of backgrounds
+    HUD_OVERLAY: 1002,  // HUD overlay graphics
+    NOTIFICATION: 2000, // Zone change, purchase feedback
+    DEBUG: 3000         // FPS counter, debug info
+  },
+  COLORS: {
+    TEXT_PRIMARY: '#ffffff',
+    TEXT_SECONDARY: '#cccccc',
+    TEXT_MUTED: '#aaaaaa',
+    TEXT_ACCENT: '#00ccff',
+    TEXT_SUCCESS: '#00ff00',
+    TEXT_WARNING: '#ffaa00',
+    TEXT_DANGER: '#ff0000',
+    TEXT_GOLD: '#ffdd00',
+    BG_DARK: '#000000',
+    BG_PANEL: '#001a33',
+    STROKE: '#000000'
+  },
+  BG_ALPHA: 0.7,
+  STROKE_THICKNESS: 4
+};

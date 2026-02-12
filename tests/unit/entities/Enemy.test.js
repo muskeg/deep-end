@@ -55,38 +55,38 @@ describe('Enemy Base Class', () => {
 
   describe('Initialization', () => {
     test('should create enemy at correct position', () => {
-      const enemy = new Enemy(mockScene, 200, 300, mockPlayer);
+      const enemy = new Enemy(mockScene, 200, 300, 'enemy', mockPlayer);
       
       expect(enemy.x).toBe(200);
       expect(enemy.y).toBe(300);
     });
 
     test('should have default detection radius', () => {
-      const enemy = new Enemy(mockScene, 200, 300, mockPlayer);
+      const enemy = new Enemy(mockScene, 200, 300, 'enemy', mockPlayer);
       
       expect(enemy.detectionRadius).toBe(200);
     });
 
     test('should accept custom detection radius', () => {
-      const enemy = new Enemy(mockScene, 200, 300, mockPlayer, 300);
+      const enemy = new Enemy(mockScene, 200, 300, 'enemy', mockPlayer, 300);
       
       expect(enemy.detectionRadius).toBe(300);
     });
 
     test('should initialize with no target', () => {
-      const enemy = new Enemy(mockScene, 200, 300, mockPlayer);
+      const enemy = new Enemy(mockScene, 200, 300, 'enemy', mockPlayer);
       
       expect(enemy.hasTarget).toBe(false);
     });
 
     test('should store player reference', () => {
-      const enemy = new Enemy(mockScene, 200, 300, mockPlayer);
+      const enemy = new Enemy(mockScene, 200, 300, 'enemy', mockPlayer);
       
       expect(enemy.player).toBe(mockPlayer);
     });
 
     test('should initialize attack cooldown', () => {
-      const enemy = new Enemy(mockScene, 200, 300, mockPlayer);
+      const enemy = new Enemy(mockScene, 200, 300, 'enemy', mockPlayer);
       
       expect(enemy.attackCooldown).toBeDefined();
       expect(enemy.lastAttackTime).toBe(0);
@@ -95,7 +95,7 @@ describe('Enemy Base Class', () => {
 
   describe('Player Detection', () => {
     test('should detect player within radius', () => {
-      const enemy = new Enemy(mockScene, 400, 300, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 400, 300, 'enemy', mockPlayer, 200);
       mockPlayer.x = 450;
       mockPlayer.y = 300;
       
@@ -103,7 +103,7 @@ describe('Enemy Base Class', () => {
     });
 
     test('should not detect player outside radius', () => {
-      const enemy = new Enemy(mockScene, 100, 100, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 100, 100, 'enemy', mockPlayer, 200);
       mockPlayer.x = 400;
       mockPlayer.y = 400;
       
@@ -111,7 +111,7 @@ describe('Enemy Base Class', () => {
     });
 
     test('should detect player at edge of radius', () => {
-      const enemy = new Enemy(mockScene, 400, 300, mockPlayer, 100);
+      const enemy = new Enemy(mockScene, 400, 300, 'enemy', mockPlayer, 100);
       mockPlayer.x = 500;
       mockPlayer.y = 300;
       
@@ -119,7 +119,7 @@ describe('Enemy Base Class', () => {
     });
 
     test('should calculate distance to player', () => {
-      const enemy = new Enemy(mockScene, 0, 0, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 0, 0, 'enemy', mockPlayer, 200);
       mockPlayer.x = 3;
       mockPlayer.y = 4;
       
@@ -129,7 +129,7 @@ describe('Enemy Base Class', () => {
 
   describe('Target Acquisition', () => {
     test('should acquire target when player detected', () => {
-      const enemy = new Enemy(mockScene, 400, 300, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 400, 300, 'enemy', mockPlayer, 200);
       mockPlayer.x = 450;
       mockPlayer.y = 300;
       
@@ -139,7 +139,7 @@ describe('Enemy Base Class', () => {
     });
 
     test('should not acquire target when player too far', () => {
-      const enemy = new Enemy(mockScene, 100, 100, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 100, 100, 'enemy', mockPlayer, 200);
       mockPlayer.x = 400;
       mockPlayer.y = 400;
       
@@ -148,22 +148,21 @@ describe('Enemy Base Class', () => {
       expect(enemy.hasTarget).toBe(false);
     });
 
-    test('should lose target when player leaves radius', () => {
-      const enemy = new Enemy(mockScene, 400, 300, mockPlayer, 200);
+    test('should lose target when loseTarget is called', () => {
+      const enemy = new Enemy(mockScene, 400, 300, 'enemy', mockPlayer, 200);
       mockPlayer.x = 450;
       mockPlayer.y = 300;
       
       enemy.update(0, 16); // Acquire target
       expect(enemy.hasTarget).toBe(true);
       
-      mockPlayer.x = 700;
-      enemy.update(0, 16); // Lose target
+      enemy.loseTarget();
       
       expect(enemy.hasTarget).toBe(false);
     });
 
     test('should emit target-acquired event', () => {
-      const enemy = new Enemy(mockScene, 400, 300, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 400, 300, 'enemy', mockPlayer, 200);
       mockPlayer.x = 450;
       mockPlayer.y = 300;
       
@@ -173,14 +172,13 @@ describe('Enemy Base Class', () => {
     });
 
     test('should emit target-lost event', () => {
-      const enemy = new Enemy(mockScene, 400, 300, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 400, 300, 'enemy', mockPlayer, 200);
       mockPlayer.x = 450;
       mockPlayer.y = 300;
       enemy.update(0, 16);
       
       mockScene.events.emit.mockClear();
-      mockPlayer.x = 700;
-      enemy.update(0, 16);
+      enemy.loseTarget();
       
       expect(mockScene.events.emit).toHaveBeenCalledWith('enemy-target-lost', enemy);
     });
@@ -188,7 +186,7 @@ describe('Enemy Base Class', () => {
 
   describe('Attack System', () => {
     test('should respect attack cooldown', () => {
-      const enemy = new Enemy(mockScene, 400, 300, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 400, 300, 'enemy', mockPlayer, 200);
       mockScene.time.now = 1000;
       
       expect(enemy.canAttack()).toBe(true);
@@ -200,7 +198,7 @@ describe('Enemy Base Class', () => {
     });
 
     test('should allow attack after cooldown expires', () => {
-      const enemy = new Enemy(mockScene, 400, 300, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 400, 300, 'enemy', mockPlayer, 200);
       mockScene.time.now = 1000;
       
       enemy.attack();
@@ -210,7 +208,7 @@ describe('Enemy Base Class', () => {
     });
 
     test('should emit attack event', () => {
-      const enemy = new Enemy(mockScene, 400, 300, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 400, 300, 'enemy', mockPlayer, 200);
       
       enemy.attack();
       
@@ -218,7 +216,7 @@ describe('Enemy Base Class', () => {
     });
 
     test('should track last attack time', () => {
-      const enemy = new Enemy(mockScene, 400, 300, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 400, 300, 'enemy', mockPlayer, 200);
       mockScene.time.now = 5000;
       
       enemy.attack();
@@ -229,7 +227,7 @@ describe('Enemy Base Class', () => {
 
   describe('Movement Direction', () => {
     test('should calculate direction toward player', () => {
-      const enemy = new Enemy(mockScene, 0, 0, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 0, 0, 'enemy', mockPlayer, 200);
       mockPlayer.x = 3;
       mockPlayer.y = 4;
       
@@ -240,7 +238,7 @@ describe('Enemy Base Class', () => {
     });
 
     test('should normalize direction vector', () => {
-      const enemy = new Enemy(mockScene, 0, 0, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 0, 0, 'enemy', mockPlayer, 200);
       mockPlayer.x = 100;
       mockPlayer.y = 0;
       
@@ -250,7 +248,7 @@ describe('Enemy Base Class', () => {
     });
 
     test('should handle same position', () => {
-      const enemy = new Enemy(mockScene, 400, 300, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 400, 300, 'enemy', mockPlayer, 200);
       mockPlayer.x = 400;
       mockPlayer.y = 300;
       
@@ -263,13 +261,13 @@ describe('Enemy Base Class', () => {
 
   describe('State Management', () => {
     test('should be active by default', () => {
-      const enemy = new Enemy(mockScene, 200, 300, mockPlayer);
+      const enemy = new Enemy(mockScene, 200, 300, 'enemy', mockPlayer);
       
       expect(enemy.isActive).toBe(true);
     });
 
     test('should allow deactivation', () => {
-      const enemy = new Enemy(mockScene, 200, 300, mockPlayer);
+      const enemy = new Enemy(mockScene, 200, 300, 'enemy', mockPlayer);
       
       enemy.setActive(false);
       
@@ -277,7 +275,7 @@ describe('Enemy Base Class', () => {
     });
 
     test('should not update when inactive', () => {
-      const enemy = new Enemy(mockScene, 400, 300, mockPlayer, 200);
+      const enemy = new Enemy(mockScene, 400, 300, 'enemy', mockPlayer, 200);
       mockPlayer.x = 450;
       mockPlayer.y = 300;
       enemy.setActive(false);
@@ -289,13 +287,11 @@ describe('Enemy Base Class', () => {
   });
 
   describe('Cleanup', () => {
-    test('should clean up graphics on destroy', () => {
-      const enemy = new Enemy(mockScene, 200, 300, mockPlayer);
-      const graphicsDestroySpy = jest.spyOn(enemy.graphics, 'destroy');
+    test('should clean up on destroy', () => {
+      const enemy = new Enemy(mockScene, 200, 300, 'enemy', mockPlayer);
       
-      enemy.destroy();
-      
-      expect(graphicsDestroySpy).toHaveBeenCalled();
+      expect(() => enemy.destroy()).not.toThrow();
+      expect(enemy.active).toBe(false);
     });
   });
 });

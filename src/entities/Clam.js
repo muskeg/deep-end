@@ -4,11 +4,12 @@ import Pearl from './Pearl.js';
 
 /**
  * Clam Entity
- * Interactive object that opens to dispense pearls
+ * Interactive object that opens to dispense pearls.
+ * Spawns with gravity enabled and settles on floors/walls like barnacles.
  */
 export default class Clam extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, hasPearl = true, pearlValue = 1) {
-    super(scene, x, y);
+    super(scene, x, y, 'clam-closed');
     
     this.scene = scene;
     scene.add.existing(this);
@@ -20,18 +21,56 @@ export default class Clam extends Phaser.Physics.Arcade.Sprite {
     this.isOpen = false;
     this.pearlDispensed = false;
     
-    // Graphics
-    this.graphics = scene.add.graphics();
-    this.graphics.setPipeline('Light2D'); // Enable lighting
-    this.updateVisuals();
+    // Sprite setup
+    this.setOrigin(0.5, 0.5);
+    this.setPipeline('Light2D');
+    this.setDisplaySize(40, 40);
     
-    // Physics
-    this.setImmovable(true);
+    // Opening animation state
+    this.openingFrame = 0;
+    this.openingTimer = 0;
+    this.isOpening = false;
+    
+    // Physics — gravity settling (barnacle behavior)
+    this.isSettled = false;
+    this.settleTimeout = null;
     this.body.setCircle(20);
+    
+    // Enable gravity so the clam falls until it hits a surface
+    this.body.setGravityY(200);
+    this.body.setBounce(0);
+    this.body.setDrag(0);
+    
+    // Start settle timeout — force-freeze after 2 seconds if no collision
+    this.settleTimeout = scene.time.addEvent({
+      delay: 2000,
+      callback: () => this.settle(),
+      callOnce: true
+    });
     
     // Timer for auto-close
     this.closeTimer = null;
     this.autoCloseDelay = 3000; // 3 seconds
+  }
+  
+  /**
+   * Settle the clam — freeze in place (called on wall collision or timeout)
+   */
+  settle() {
+    if (this.isSettled) return;
+    
+    this.isSettled = true;
+    this.body.setGravityY(0);
+    this.body.setVelocity(0, 0);
+    this.body.setImmovable(true);
+    this.body.setAllowGravity(false);
+    this.setImmovable(true);
+    
+    // Cancel settle timeout if it hasn't fired yet
+    if (this.settleTimeout) {
+      this.settleTimeout.remove();
+      this.settleTimeout = null;
+    }
   }
   
   /**
@@ -40,17 +79,11 @@ export default class Clam extends Phaser.Physics.Arcade.Sprite {
   open() {
     if (this.isOpen) return false;
     
-    this.isOpen = true;
-    this.updateVisuals();
+    this.isOpening = true;
+    this.openingFrame = 0;
+    this.openingTimer = 0;
+    this.setTexture('clam-opening-0');
     this.scene.events.emit('clam-opened', this);
-    
-    // Auto-close if no pearl
-    if (!this.hasPearl) {
-      this.closeTimer = this.scene.time.addEvent({
-        delay: this.autoCloseDelay,
-        callback: () => this.close()
-      });
-    }
     
     return true;
   }
@@ -60,7 +93,8 @@ export default class Clam extends Phaser.Physics.Arcade.Sprite {
    */
   close() {
     this.isOpen = false;
-    this.updateVisuals();
+    this.isOpening = false;
+    this.setTexture('clam-closed');
   }
   
   /**
@@ -89,28 +123,14 @@ export default class Clam extends Phaser.Physics.Arcade.Sprite {
    * Update visual representation
    */
   updateVisuals() {
-    this.graphics.clear();
-    
-    // Draw clam shell
     if (this.isOpen) {
-      // Open clam (two halves separated)
-      this.graphics.fillStyle(COLORS.CLAM_OPEN, 1);
-      this.graphics.fillCircle(this.x - 10, this.y, 15);
-      this.graphics.fillCircle(this.x + 10, this.y, 15);
-      
-      // Show pearl hint if has pearl
       if (this.hasPearl && !this.pearlDispensed) {
-        this.graphics.fillStyle(COLORS.PEARL, 0.8);
-        this.graphics.fillCircle(this.x, this.y, 8);
+        this.setTexture('clam-open-pearl');
+      } else {
+        this.setTexture('clam-open');
       }
     } else {
-      // Closed clam (single circle)
-      this.graphics.fillStyle(COLORS.CLAM_CLOSED, 1);
-      this.graphics.fillCircle(this.x, this.y, 20);
-      
-      // Subtle outline
-      this.graphics.lineStyle(2, COLORS.CLAM_OPEN, 0.5);
-      this.graphics.strokeCircle(this.x, this.y, 20);
+      this.setTexture('clam-closed');
     }
   }
   
@@ -118,10 +138,30 @@ export default class Clam extends Phaser.Physics.Arcade.Sprite {
    * Update loop
    */
   update(time, delta) {
-    // Animation could be added here
-    if (this.isOpen) {
-      // Subtle shimmer effect when open
-      this.updateVisuals();
+    // Handle opening animation
+    if (this.isOpening && !this.isOpen) {
+      this.openingTimer += delta;
+      if (this.openingTimer >= 100) { // 100ms per frame
+        this.openingTimer = 0;
+        this.openingFrame++;
+        
+        if (this.openingFrame >= 3) {
+          // Opening animation complete
+          this.isOpening = false;
+          this.isOpen = true;
+          this.updateVisuals();
+          
+          // Auto-close if no pearl
+          if (!this.hasPearl) {
+            this.closeTimer = this.scene.time.addEvent({
+              delay: this.autoCloseDelay,
+              callback: () => this.close()
+            });
+          }
+        } else {
+          this.setTexture(`clam-opening-${this.openingFrame}`);
+        }
+      }
     }
   }
   
@@ -132,8 +172,9 @@ export default class Clam extends Phaser.Physics.Arcade.Sprite {
     if (this.closeTimer) {
       this.closeTimer.remove();
     }
-    if (this.graphics) {
-      this.graphics.destroy();
+    if (this.settleTimeout) {
+      this.settleTimeout.remove();
+      this.settleTimeout = null;
     }
     super.destroy();
   }

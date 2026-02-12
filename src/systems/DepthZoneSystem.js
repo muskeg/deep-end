@@ -143,7 +143,7 @@ export default class DepthZoneSystem {
    * @returns {number} Interpolated value
    */
   lerp(a, b, t) {
-    return a + (b - a) * (1 - t);
+    return a + (b - a) * t;
   }
 
   /**

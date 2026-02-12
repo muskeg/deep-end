@@ -55,9 +55,9 @@ Player can fight enemies using harpoon weapon (ranged attack with ammo/cooldown)
 
 **Acceptance Scenarios**:
 
-1. **Given** player has harpoon equipped, **When** player presses attack key (Q), **Then** harpoon projectile fires in movement direction, travels across screen, damages enemies on hit
+1. **Given** player has harpoon equipped, **When** player presses attack key (SPACE on keyboard, B/Y/R1 on gamepad, or HARPOON touch button), **Then** harpoon projectile fires in movement direction, travels across screen, damages enemies on hit
 2. **Given** enemy is hit by harpoon, **When** damage is applied, **Then** enemy health decreases, visual feedback shows hit (flash/shake), enemy dies if health reaches zero
-3. **Given** player presses dash key (Shift), **When** dash activates, **Then** player speed doubles for 0.5 seconds, dash cooldown starts (5 seconds default)
+3. **Given** player presses dash key (Shift on keyboard, A/X on gamepad, or DASH touch button), **When** dash activates, **Then** player speed doubles for 0.5 seconds, dash cooldown starts (5 seconds default)
 4. **Given** enemy is chasing player, **When** player moves behind wall, **Then** enemy pathfinds around wall (does not phase through)
 5. **Given** enemy has chased player for 10 seconds, **When** chase timer expires, **Then** enemy abandons chase and returns to patrol behavior
 6. **Given** enemy loses line of sight for 5 seconds, **When** distance exceeds 800px, **Then** enemy gives up chase and idles
@@ -201,11 +201,29 @@ Map layout features fixed landmark structures (cave formations, trenches, platea
 - **FR-041**: System MUST make clams immovable (static) after resting on floor/walls
 - **FR-042**: System MUST prevent clams from floating in mid-water
 
-**Partially Procedural Map:**
-- **FR-043**: System MUST define fixed landmark zones (large caverns, trenches, narrow passes)
-- **FR-044**: System MUST randomize wall detail patterns within landmarks each run
+**Chunk-Based World Generation:**
+- **FR-043**: System MUST generate the game world using a chunk-based system (10000px chunks) with seeded cellular automata for deterministic, reproducible caverns per dive
+- **FR-044**: System MUST tile chunks seamlessly by passing the last row of each chunk as the seed for the next chunk's first row (cross-chunk seam blending)
 - **FR-045**: System MUST randomize clam/pearl spawn positions within appropriate zones each run
-- **FR-046**: System MUST preserve landmark geometry during Cellular Automata generation
+- **FR-046**: System MUST only apply the surface zone (wall-free top 10%) to the first chunk (chunk 0); subsequent chunks generate as normal cave terrain
+- **FR-046a**: System MUST NOT force solid bottom walls on any chunk to allow continuous vertical connectivity between chunks
+- **FR-046b**: System MUST dynamically load chunks around the player position and expand world bounds as the player descends
+- **FR-046c**: System MUST validate generated chunks for connectivity and sufficient open space, retrying with adjusted seeds on failure
+
+**Unified Input System:**
+- **FR-051**: System MUST support keyboard (WASD/arrows + SPACE/Shift/E), gamepad (left stick/d-pad + face buttons), and touch controls (tap-to-move + action buttons) via a unified input system
+- **FR-052**: System MUST enable the Phaser gamepad plugin at game configuration level
+- **FR-053**: System MUST provide on-screen touch buttons for Dash, Harpoon, and Interact on mobile devices
+
+**System Behavior (Bug Fixes Applied):**
+- **FR-054**: Water currents MUST apply additive force to player velocity (player can swim against currents)
+- **FR-055**: Oxygen depletion MUST be driven by OxygenSystem's difficulty-scaled rate, not by the player entity's own depletion method
+- **FR-056**: Enemy collision invulnerability MUST use the player's own `isInvulnerable` state rather than a separate timer in CollisionSystem
+- **FR-057**: Enemy collision damage MUST route through `player.takeDamage()` to trigger invulnerability frames and visual feedback
+- **FR-058**: Depth zone color interpolation MUST use the standard linear interpolation formula `a + (b - a) * t`
+- **FR-059**: DifficultySystem MUST resolve the current zone object before requesting enemy multipliers from DepthZoneSystem
+- **FR-060**: Zone ambient colors in configuration data MUST be stored as numeric values (not hex strings) for direct use with Phaser's lighting API
+- **FR-061**: Wall edge highlight colors MUST be calculated using per-channel addition with clamping to 255 to prevent color overflow
 
 **Run Management:**
 - **FR-047**: System MUST end run when oxygen reaches zero (death)
@@ -223,8 +241,10 @@ Map layout features fixed landmark structures (cave formations, trenches, platea
 - **Enemy**: Hostile creature with improved AI; has health points, damage value, movement speed (zone-scaled), patrol behavior, chase behavior with abandonment logic (time/distance thresholds), pathfinding navigation
 - **Pearl Tier**: Collectible currency with value based on depth; Common (1 pearl, Sunlight Zone), Rare (5 pearls, Twilight Zone), Legendary (20 pearls, Midnight Zone)
 - **Clam**: Physics-based pearl container; has gravity during spawn, becomes static on surface contact, open/closed sprite states, opening animation, pearl tier inside
-- **Landmark**: Fixed map structure preserved across runs; has position, shape geometry, type (cavern/trench/passage); details (exact walls, openings) randomize within boundaries
-- **Player Progression**: Persistent save data in LocalStorage; contains owned upgrades (type + level), total pearls collected (currency balance), best depth reached (record), run statistics
+- **Chunk**: A 10000px vertical segment of the game world; generated using seeded cellular automata; cached after generation; stores wall positions and the last row of its grid for seam continuity with the next chunk; loaded/unloaded based on player proximity
+- **InputSystem**: Unified input handler supporting keyboard (WASD/arrows), gamepad (analog stick/d-pad/face buttons), and touch (tap-to-move + on-screen buttons); provides normalized movement vector and action flags (dash, harpoon, interact)
+- **SpriteGenerator**: Procedural texture generator creating pixel-art sprites at runtime; generates diver (8 directions × idle/swim frames), jellyfish (3 pulsing frames), and eel (4 directions × 2 serpentine frames) sprite textures using Canvas 2D API
+- **Player Progression**: Persistent save data in LocalStorage; contains owned upgrades (type + level), total pearls collected (currency balance), best depth reached (record), run statistics; uses singleton pattern to share state across scenes
 
 ## Success Criteria *(mandatory)*
 
@@ -236,18 +256,5 @@ Map layout features fixed landmark structures (cave formations, trenches, platea
 - Map provides both familiarity (landmarks) and variety (randomized details) across multiple runs
 - Roguelike loop is satisfying - death/surfacing → shop → upgrade → dive deeper → repeat
 - Game remains deployable as static files on GitHub Pages with LocalStorage persistence (no backend required)
-- **[Entity 2]**: [What it represents, relationships to other entities]
-
-## Success Criteria *(mandatory)*
-
-<!--
-  ACTION REQUIRED: Define measurable success criteria.
-  These must be technology-agnostic and measurable.
--->
-
-### Measurable Outcomes
-
-- **SC-001**: [Measurable metric, e.g., "Users can complete account creation in under 2 minutes"]
-- **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
-- **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
-- **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+- Chunk-based world generation produces seamless, continuous caverns with no gaps or artificial walls between chunks
+- Unified input system supports keyboard, gamepad, and touch controls without requiring separate code paths

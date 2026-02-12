@@ -4,11 +4,18 @@ import upgradesData from '../data/upgrades.json';
 /**
  * ProgressionSystem
  * Manages player progression: pearls, upgrades, statistics
+ * Uses singleton pattern so all scenes share the same instance.
  */
+let _instance = null;
+
 export default class ProgressionSystem extends LocalStorageManager {
   constructor() {
+    if (_instance) {
+      return _instance;
+    }
     super('deepend_progression');
     
+    _instance = this;
     this.pearls = 0;
     this.upgrades = {};
     this.statistics = {
@@ -16,7 +23,10 @@ export default class ProgressionSystem extends LocalStorageManager {
       enemiesKilled: 0,
       deepestDepthReached: 0,
       totalDives: 0,
-      totalDeaths: 0
+      totalDeaths: 0,
+      totalPlayTime: 0,       // seconds
+      longestDive: 0,          // seconds
+      upgradesPurchased: 0
     };
 
     // Initialize upgrade levels to 0
@@ -114,6 +124,7 @@ export default class ProgressionSystem extends LocalStorageManager {
     // Deduct cost and increase level
     this.pearls -= cost;
     this.upgrades[upgradeType] = currentLevel + 1;
+    this.statistics.upgradesPurchased++;
     this.saveProgress();
 
     console.log(`[Progression] Purchased ${upgradeType} level ${this.upgrades[upgradeType]} for ${cost} pearls`);
@@ -212,10 +223,20 @@ export default class ProgressionSystem extends LocalStorageManager {
       enemiesKilled: 0,
       deepestDepthReached: 0,
       totalDives: 0,
-      totalDeaths: 0
+      totalDeaths: 0,
+      totalPlayTime: 0,
+      longestDive: 0,
+      upgradesPurchased: 0
     };
 
     this.clear();
     console.log('[Progression] Reset to new game state');
+  }
+
+  /**
+   * Clear singleton instance (for testing or full reset)
+   */
+  static clearInstance() {
+    _instance = null;
   }
 }

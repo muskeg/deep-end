@@ -70,6 +70,9 @@ export default class CombatSystem {
     if (this.scene.collisionSystem) {
       this.scene.collisionSystem.removeEnemy(enemy);
     }
+    
+    // Destroy the enemy sprite
+    enemy.destroy();
   }
   
   /**

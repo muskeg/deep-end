@@ -73,10 +73,10 @@ export default class CurrentSystem {
       }
     }
     
-    // Apply combined force to player velocity
+    // Apply combined force to player velocity (additive, so player can swim against currents)
     if (inAnyCurrent) {
-      this.player.body.velocity.x = totalForce.x;
-      this.player.body.velocity.y = totalForce.y;
+      this.player.body.velocity.x += totalForce.x;
+      this.player.body.velocity.y += totalForce.y;
     }
   }
   

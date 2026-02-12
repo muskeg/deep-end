@@ -11,7 +11,6 @@ export default class CollisionSystem {
     this.isActive = true;
     this.totalCollisions = 0;
     this.totalEnemyCollisions = 0;
-    this.lastEnemyCollisionTime = 0;
   }
   
   /**
@@ -182,15 +181,11 @@ export default class CollisionSystem {
       }
     }
     
-    // Check enemy collisions with invulnerability period
-    const currentTime = this.scene.time.now;
-    const invulnerabilityDuration = 1000; // 1 second
-    
-    if (currentTime - this.lastEnemyCollisionTime >= invulnerabilityDuration) {
+    // Check enemy collisions (respects player's invulnerability state)
+    if (!this.player.isInvulnerable) {
       for (const enemy of this.enemies) {
         if (enemy.isActive && this.checkEnemyCollision(this.player, enemy)) {
           this.handleEnemyCollision(enemy);
-          this.lastEnemyCollisionTime = currentTime;
           break; // Only process one collision per frame
         }
       }
@@ -304,6 +299,5 @@ export default class CollisionSystem {
   reset() {
     this.totalCollisions = 0;
     this.totalEnemyCollisions = 0;
-    this.lastEnemyCollisionTime = 0;
   }
 }

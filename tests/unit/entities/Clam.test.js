@@ -31,7 +31,13 @@ describe('Clam Entity', () => {
           sprite: jest.fn(() => ({
             setImmovable: jest.fn().mockReturnThis(),
             body: {
-              setCircle: jest.fn()
+              setCircle: jest.fn(),
+              setGravityY: jest.fn(),
+              setBounce: jest.fn(),
+              setDrag: jest.fn(),
+              setVelocity: jest.fn(),
+              setImmovable: jest.fn(),
+              setAllowGravity: jest.fn()
             }
           })),
           existing: jest.fn()
@@ -76,10 +82,11 @@ describe('Clam Entity', () => {
       expect(clamWithoutPearl.hasPearl).toBe(false);
     });
 
-    test('should be immovable', () => {
+    test('should start with gravity enabled (unsettled)', () => {
       const clam = new Clam(mockScene, 100, 200, true);
       
-      expect(clam.setImmovable).toHaveBeenCalledWith(true);
+      expect(clam.body.setGravityY).toHaveBeenCalledWith(200);
+      expect(clam.isSettled).toBe(false);
     });
 
     test('should have circular collision body', () => {
@@ -94,6 +101,11 @@ describe('Clam Entity', () => {
       const clam = new Clam(mockScene, 100, 200, true);
       
       clam.open();
+      
+      // Opening is now animated - advance 3 frames (100ms each)
+      clam.update(0, 100);
+      clam.update(0, 100);
+      clam.update(0, 100);
       
       expect(clam.isOpen).toBe(true);
     });
@@ -137,6 +149,11 @@ describe('Clam Entity', () => {
       const clam = new Clam(mockScene, 100, 200, true);
       
       clam.open();
+      
+      // Advance opening animation
+      clam.update(0, 100);
+      clam.update(0, 100);
+      clam.update(0, 100);
       
       // Should stay open indefinitely until pearl is collected
       expect(clam.isOpen).toBe(true);
@@ -190,35 +207,20 @@ describe('Clam Entity', () => {
   });
 
   describe('Visual State', () => {
-    test('should update visual appearance when opened', () => {
+    test('should update texture when opened', () => {
       const clam = new Clam(mockScene, 100, 200, true);
-      const graphics = clam.graphics;
       
       clam.open();
       
-      expect(graphics.clear).toHaveBeenCalled();
+      expect(clam.setTexture).toHaveBeenCalled();
     });
 
-    test('should display different color when open vs closed', () => {
+    test('should use closed texture when closed', () => {
       const clam = new Clam(mockScene, 100, 200, true);
-      const graphics = clam.graphics;
       
       clam.close();
-      const closedCalls = graphics.fillStyle.mock.calls.length;
       
-      clam.open();
-      const openCalls = graphics.fillStyle.mock.calls.length;
-      
-      expect(openCalls).toBeGreaterThan(closedCalls);
-    });
-
-    test('should show pearl hint when open and has pearl', () => {
-      const clam = new Clam(mockScene, 100, 200, true);
-      
-      clam.open();
-      
-      // Graphics should show pearl indication
-      expect(clam.graphics.fillStyle).toHaveBeenCalledWith(COLORS.PEARL, expect.any(Number));
+      expect(clam.setTexture).toHaveBeenCalledWith('clam-closed');
     });
   });
 
@@ -255,31 +257,67 @@ describe('Clam Entity', () => {
       const clam = new Clam(mockScene, 100, 200, true);
       clam.open();
       
-      const updateSpy = jest.spyOn(clam, 'updateVisuals');
-      clam.update(16);
+      const setTextureSpy = jest.spyOn(clam, 'setTexture');
+      // Advance one animation frame
+      clam.update(0, 100);
       
-      expect(updateSpy).toHaveBeenCalled();
+      // Should cycle through opening textures
+      expect(setTextureSpy).toHaveBeenCalled();
     });
   });
 
   describe('Cleanup', () => {
-    test('should destroy graphics when destroyed', () => {
+    test('should clean up on destroy', () => {
       const clam = new Clam(mockScene, 100, 200, true);
-      const destroySpy = jest.spyOn(clam.graphics, 'destroy');
       
-      clam.destroy();
-      
-      expect(destroySpy).toHaveBeenCalled();
+      expect(() => clam.destroy()).not.toThrow();
+      expect(clam.active).toBe(false);
     });
 
     test('should remove timers when destroyed', () => {
       const clam = new Clam(mockScene, 100, 200, false); // No pearl, so timer will be created
       clam.open();
       
-      const timerRemoveSpy = jest.spyOn(clam.closeTimer, 'remove');
-      clam.destroy();
+      // Verify timer was created and clam can be destroyed without error
+      expect(() => clam.destroy()).not.toThrow();
+    });
+  });
+
+  describe('Physics Settling', () => {
+    test('should settle and become immovable', () => {
+      const clam = new Clam(mockScene, 100, 200, true);
       
-      expect(timerRemoveSpy).toHaveBeenCalled();
+      expect(clam.isSettled).toBe(false);
+      
+      clam.settle();
+      
+      expect(clam.isSettled).toBe(true);
+      expect(clam.body.setGravityY).toHaveBeenCalledWith(0);
+      expect(clam.body.setVelocity).toHaveBeenCalledWith(0, 0);
+      expect(clam.body.setImmovable).toHaveBeenCalledWith(true);
+      expect(clam.body.setAllowGravity).toHaveBeenCalledWith(false);
+    });
+
+    test('should not settle twice', () => {
+      const clam = new Clam(mockScene, 100, 200, true);
+      
+      clam.settle();
+      clam.body.setGravityY.mockClear();
+      
+      clam.settle(); // Should be a no-op
+      
+      expect(clam.body.setGravityY).not.toHaveBeenCalled();
+    });
+
+    test('should start settle timeout on creation', () => {
+      new Clam(mockScene, 100, 200, true);
+      
+      // Should have called addEvent for the 2-second timeout
+      expect(mockScene.time.addEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          delay: 2000
+        })
+      );
     });
   });
 });

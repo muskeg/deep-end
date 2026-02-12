@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SCENES, COLORS } from '../utils/Constants.js';
+import { SCENES, COLORS, UI_CONFIG } from '../utils/Constants.js';
 
 /**
  * GameOverScene - Victory/defeat screen with restart option
@@ -30,9 +30,9 @@ export default class GameOverScene extends Phaser.Scene {
     const resultText = this.victory ? 'LEVEL COMPLETE!' : 'OXYGEN DEPLETED';
     
     const title = this.add.text(width / 2, height / 3, resultText, {
-      font: 'bold 48px monospace',
+      font: UI_CONFIG.FONT.TITLE,
       fill: resultColor,
-      stroke: '#000000',
+      stroke: UI_CONFIG.COLORS.STROKE,
       strokeThickness: 6
     });
     title.setOrigin(0.5);
@@ -47,18 +47,40 @@ export default class GameOverScene extends Phaser.Scene {
     
     stats.forEach((line, index) => {
       const text = this.add.text(width / 2, statsY + (index * 32), line, {
-        font: '24px monospace',
-        fill: '#ffffff',
+        font: UI_CONFIG.FONT.LARGE,
+        fill: UI_CONFIG.COLORS.TEXT_PRIMARY,
         align: 'center'
       });
       text.setOrigin(0.5);
     });
     
+    // Return to Shop button (primary action for roguelike loop)
+    const shopButton = this.add.text(width / 2, height - 170, 'RETURN TO SHOP', {
+      font: UI_CONFIG.FONT.LARGE,
+      fill: UI_CONFIG.COLORS.TEXT_PRIMARY,
+      backgroundColor: '#006600',
+      padding: { x: 20, y: 10 }
+    });
+    shopButton.setOrigin(0.5);
+    shopButton.setInteractive({ useHandCursor: true });
+    
+    shopButton.on('pointerover', () => {
+      shopButton.setStyle({ fill: '#00ff00' });
+    });
+    
+    shopButton.on('pointerout', () => {
+      shopButton.setStyle({ fill: '#ffffff' });
+    });
+    
+    shopButton.on('pointerdown', () => {
+      this.returnToShop();
+    });
+    
     // Restart button
-    const restartButton = this.add.text(width / 2, height - 120, 'RESTART', {
-      font: 'bold 28px monospace',
-      fill: '#ffffff',
-      backgroundColor: '#003d66',
+    const restartButton = this.add.text(width / 2, height - 110, 'RESTART', {
+      font: UI_CONFIG.FONT.LARGE,
+      fill: UI_CONFIG.COLORS.TEXT_SECONDARY,
+      backgroundColor: UI_CONFIG.COLORS.BG_PANEL,
       padding: { x: 20, y: 10 }
     });
     restartButton.setOrigin(0.5);
@@ -69,7 +91,7 @@ export default class GameOverScene extends Phaser.Scene {
     });
     
     restartButton.on('pointerout', () => {
-      restartButton.setStyle({ fill: '#ffffff' });
+      restartButton.setStyle({ fill: '#cccccc' });
     });
     
     restartButton.on('pointerdown', () => {
@@ -77,9 +99,9 @@ export default class GameOverScene extends Phaser.Scene {
     });
     
     // Menu button
-    const menuButton = this.add.text(width / 2, height - 70, 'MAIN MENU', {
-      font: '20px monospace',
-      fill: '#aaaaaa'
+    const menuButton = this.add.text(width / 2, height - 60, 'MAIN MENU', {
+      font: UI_CONFIG.FONT.MEDIUM,
+      fill: UI_CONFIG.COLORS.TEXT_MUTED
     });
     menuButton.setOrigin(0.5);
     menuButton.setInteractive({ useHandCursor: true });
@@ -98,18 +120,22 @@ export default class GameOverScene extends Phaser.Scene {
     
     // Keyboard shortcuts
     this.input.keyboard.once('keydown-SPACE', () => {
-      this.restartGame();
+      this.returnToShop();
     });
     
     this.input.keyboard.once('keydown-ESC', () => {
       this.returnToMenu();
     });
     
+    this.input.keyboard.once('keydown-R', () => {
+      this.restartGame();
+    });
+    
     // Continue to next level if victory
     if (this.victory) {
       const continueText = this.add.text(width / 2, height - 160, 'Press ENTER for Next Level', {
-        font: '18px monospace',
-        fill: '#00ff00'
+        font: UI_CONFIG.FONT.MEDIUM,
+        fill: UI_CONFIG.COLORS.TEXT_SUCCESS
       });
       continueText.setOrigin(0.5);
       
@@ -130,6 +156,13 @@ export default class GameOverScene extends Phaser.Scene {
     this.cameras.main.fadeOut(300, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start(SCENES.GAME, { level: this.level + 1, score: this.score });
+    });
+  }
+
+  returnToShop() {
+    this.cameras.main.fadeOut(300, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.start(SCENES.SHOP);
     });
   }
 

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS } from '../utils/Constants.js';
+import { COLORS, UI_CONFIG } from '../utils/Constants.js';
 
 /**
  * ShopMenu UI Component
@@ -26,11 +26,10 @@ export default class ShopMenu {
       80,
       `Pearls: ${pearls}`,
       {
-        fontSize: '32px',
-        fontFamily: 'Arial',
-        color: '#ffffff',
-        stroke: '#000000',
-        strokeThickness: 4
+        font: UI_CONFIG.FONT.HEADER,
+        fill: UI_CONFIG.COLORS.TEXT_PRIMARY,
+        stroke: UI_CONFIG.COLORS.STROKE,
+        strokeThickness: UI_CONFIG.STROKE_THICKNESS
       }
     ).setOrigin(0.5);
     
@@ -78,10 +77,8 @@ export default class ShopMenu {
       x - 320, y - 20,
       `${upgrade.name} (Lv ${upgrade.currentLevel})`,
       {
-        fontSize: '20px',
-        fontFamily: 'Arial',
-        color: '#ffffff',
-        fontStyle: 'bold'
+        font: UI_CONFIG.FONT.MEDIUM,
+        fill: UI_CONFIG.COLORS.TEXT_PRIMARY
       }
     );
     
@@ -90,9 +87,8 @@ export default class ShopMenu {
       x - 320, y + 5,
       upgrade.description,
       {
-        fontSize: '14px',
-        fontFamily: 'Arial',
-        color: '#cccccc'
+        font: UI_CONFIG.FONT.SMALL,
+        fill: UI_CONFIG.COLORS.TEXT_SECONDARY
       }
     );
     
@@ -103,10 +99,8 @@ export default class ShopMenu {
         x + 250, y,
         'MAX',
         {
-          fontSize: '18px',
-          fontFamily: 'Arial',
-          color: '#ffaa00',
-          fontStyle: 'bold'
+          font: UI_CONFIG.FONT.MEDIUM,
+          fill: UI_CONFIG.COLORS.TEXT_WARNING
         }
       ).setOrigin(1, 0.5);
     } else {
@@ -114,10 +108,8 @@ export default class ShopMenu {
         x + 250, y,
         `${upgrade.nextCost} 💎`,
         {
-          fontSize: '18px',
-          fontFamily: 'Arial',
-          color: canAfford ? '#00ff00' : '#ff6666',
-          fontStyle: 'bold'
+          font: UI_CONFIG.FONT.MEDIUM,
+          fill: canAfford ? UI_CONFIG.COLORS.TEXT_SUCCESS : '#ff6666'
         }
       ).setOrigin(1, 0.5);
     }

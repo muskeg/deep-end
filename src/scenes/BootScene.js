@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SCENES } from '../utils/Constants.js';
+import { SCENES, UI_CONFIG } from '../utils/Constants.js';
 
 /**
  * BootScene - Asset loading and initialization
@@ -25,8 +25,8 @@ export default class BootScene extends Phaser.Scene {
       y: height / 2 - 50,
       text: 'Loading...',
       style: {
-        font: '20px monospace',
-        fill: '#ffffff'
+        font: UI_CONFIG.FONT.MEDIUM,
+        fill: UI_CONFIG.COLORS.TEXT_PRIMARY
       }
     });
     loadingText.setOrigin(0.5, 0.5);
@@ -36,8 +36,8 @@ export default class BootScene extends Phaser.Scene {
       y: height / 2,
       text: '0%',
       style: {
-        font: '18px monospace',
-        fill: '#ffffff'
+        font: UI_CONFIG.FONT.MEDIUM,
+        fill: UI_CONFIG.COLORS.TEXT_ACCENT
       }
     });
     percentText.setOrigin(0.5, 0.5);
@@ -56,10 +56,52 @@ export default class BootScene extends Phaser.Scene {
       loadingText.destroy();
       percentText.destroy();
     });
+
+    // ── Load Sprite Assets ──────────────────────────────────────────────
     
-    // Asset loading will be added here in Phase 3
-    // For now, just a small delay to show loading screen
-    this.load.image('placeholder', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
+    // Diver sprites (8 directions x idle/swim/dash)
+    const directions = ['down', 'down-right', 'right', 'up-right', 'up', 'up-left', 'left', 'down-left'];
+    for (const dir of directions) {
+      this.load.image(`diver-idle-${dir}`, `assets/sprites/diver/diver-idle-${dir}.png`);
+      this.load.image(`diver-swim-${dir}-0`, `assets/sprites/diver/diver-swim-${dir}-0.png`);
+      this.load.image(`diver-swim-${dir}-1`, `assets/sprites/diver/diver-swim-${dir}-1.png`);
+      this.load.image(`diver-dash-${dir}`, `assets/sprites/diver/diver-dash-${dir}.png`);
+    }
+    
+    // Enemy sprites
+    for (let i = 0; i < 3; i++) {
+      this.load.image(`jellyfish-${i}`, `assets/sprites/enemies/jellyfish-${i}.png`);
+    }
+    for (const dir of ['left', 'right', 'up', 'down']) {
+      this.load.image(`eel-${dir}-0`, `assets/sprites/enemies/eel-${dir}-0.png`);
+      this.load.image(`eel-${dir}-1`, `assets/sprites/enemies/eel-${dir}-1.png`);
+    }
+    
+    // Clam sprites
+    this.load.image('clam-closed', 'assets/sprites/clams/clam-closed.png');
+    this.load.image('clam-open', 'assets/sprites/clams/clam-open.png');
+    this.load.image('clam-open-pearl', 'assets/sprites/clams/clam-open-pearl.png');
+    for (let i = 0; i < 3; i++) {
+      this.load.image(`clam-opening-${i}`, `assets/sprites/clams/clam-opening-${i}.png`);
+    }
+    
+    // Pearl sprites (shimmer animation)
+    for (let i = 0; i < 3; i++) {
+      this.load.image(`pearl-${i}`, `assets/sprites/pearl/pearl-${i}.png`);
+    }
+    
+    // Harpoon sprite
+    this.load.image('harpoon', 'assets/sprites/harpoon/harpoon.png');
+    
+    // Wall tile variants
+    for (let i = 0; i < 4; i++) {
+      this.load.image(`wall-${i}`, `assets/sprites/walls/wall-${i}.png`);
+    }
+    
+    // Water current effect sprites
+    for (let i = 0; i < 3; i++) {
+      this.load.image(`current-${i}`, `assets/sprites/effects/current-${i}.png`);
+    }
   }
 
   create() {

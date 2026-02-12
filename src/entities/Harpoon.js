@@ -14,7 +14,7 @@ export default class Harpoon extends Phaser.Physics.Arcade.Sprite {
    * @param {number} y - Initial y position
    */
   constructor(scene, x, y) {
-    super(scene, x, y);
+    super(scene, x, y, 'harpoon');
     
     this.scene = scene;
     scene.add.existing(this);
@@ -31,10 +31,9 @@ export default class Harpoon extends Phaser.Physics.Arcade.Sprite {
     this.active = false;
     this.hasHit = false;
     
-    // Graphics
-    this.graphics = scene.add.graphics();
-    this.graphics.setPipeline('Light2D');
-    this.updateVisuals();
+    // Sprite setup
+    this.setOrigin(0.5, 0.5);
+    this.setPipeline('Light2D');
     
     // Physics
     this.body.setSize(30, 6);
@@ -144,25 +143,8 @@ export default class Harpoon extends Phaser.Physics.Arcade.Sprite {
    * Update visual representation
    */
   updateVisuals() {
-    this.graphics.clear();
-    
-    // Position graphics at harpoon location
-    this.graphics.x = this.x;
-    this.graphics.y = this.y;
-    this.graphics.rotation = this.rotation;
-    
-    // Draw harpoon shaft
-    this.graphics.fillStyle(COLORS.HARPOON, 1);
-    this.graphics.fillRect(-15, -2, 25, 4);
-    
-    // Draw harpoon tip
-    this.graphics.fillStyle(COLORS.HARPOON_TIP || 0xCCCCCC, 1);
-    this.graphics.beginPath();
-    this.graphics.moveTo(10, 0);
-    this.graphics.lineTo(5, -4);
-    this.graphics.lineTo(5, 4);
-    this.graphics.closePath();
-    this.graphics.fillPath();
+    // Sprite rotation is handled by this.rotation set in fire()
+    // No manual graphics drawing needed
   }
   
   /**
@@ -225,11 +207,6 @@ export default class Harpoon extends Phaser.Physics.Arcade.Sprite {
     // Clean up trail particles
     this.trailParticles.forEach(particle => particle.destroy());
     this.trailParticles = [];
-    
-    // Clean up graphics
-    if (this.graphics) {
-      this.graphics.destroy();
-    }
     
     // Remove from scene
     super.destroy();

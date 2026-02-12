@@ -17,7 +17,12 @@ export default class Jellyfish extends Enemy {
    * @param {object} multipliers - Zone-based difficulty multipliers
    */
   constructor(scene, x, y, player, waypoints = [], multipliers = {}) {
-    super(scene, x, y, player, ENEMY_CONFIG.JELLYFISH.DETECTION_RADIUS);
+    super(scene, x, y, 'jellyfish-0', player, ENEMY_CONFIG.JELLYFISH.DETECTION_RADIUS);
+    
+    // Animation properties
+    this.animationFrame = 0;
+    this.animationTimer = 0;
+    this.animationSpeed = 200; // ms per frame
     
     // Apply zone multipliers
     const { speedMultiplier = 1.0, damageMultiplier = 1.0 } = multipliers;
@@ -119,39 +124,15 @@ export default class Jellyfish extends Enemy {
   }
   
   /**
-   * Update visual representation
-   */
-  updateVisuals() {
-    this.graphics.clear();
-    
-    // Change color based on state
-    const color = this.hasTarget ? 0xff00ff : 0x00ffff; // Magenta when chasing, cyan when patrolling
-    this.graphics.fillStyle(color, 0.6);
-    this.graphics.fillCircle(this.x, this.y, 20);
-    
-    // Draw tentacles (simple lines)
-    this.graphics.lineStyle(2, color, 0.5);
-    for (let i = 0; i < 4; i++) {
-      const angle = (Math.PI * 2 * i) / 4;
-      const x1 = this.x + Math.cos(angle) * 10;
-      const y1 = this.y + Math.sin(angle) * 10;
-      const x2 = this.x + Math.cos(angle) * 25;
-      const y2 = this.y + Math.sin(angle) * 25;
-      
-      this.graphics.beginPath();
-      this.graphics.moveTo(x1, y1);
-      this.graphics.lineTo(x2, y2);
-      this.graphics.strokePath();
-    }
-  }
-  
-  /**
    * Main update loop
    * @param {number} time - Current game time
    * @param {number} delta - Delta time since last frame
    */
   update(time, delta) {
     if (!this.isActive) return;
+    
+    // Update animation
+    this.updateAnimation(delta);
     
     // Base enemy update (handles detection)
     super.update(time, delta);
@@ -161,6 +142,20 @@ export default class Jellyfish extends Enemy {
       this.chase(delta);
     } else {
       this.patrol(delta);
+    }
+  }
+  
+  /**
+   * Update sprite animation
+   * @param {number} delta - Delta time in milliseconds
+   */
+  updateAnimation(delta) {
+    this.animationTimer += delta;
+    
+    if (this.animationTimer >= this.animationSpeed) {
+      this.animationTimer = 0;
+      this.animationFrame = (this.animationFrame + 1) % 3;
+      this.setTexture(`jellyfish-${this.animationFrame}`);
     }
   }
 }

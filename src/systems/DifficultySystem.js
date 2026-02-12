@@ -33,7 +33,13 @@ export default class DifficultySystem {
    */
   getZoneDifficulty(playerY) {
     if (this.scene.depthZoneSystem) {
-      return this.scene.depthZoneSystem.getEnemyMultipliers(playerY);
+      const zone = this.scene.depthZoneSystem.getCurrentZone(playerY);
+      const multipliers = this.scene.depthZoneSystem.getEnemyMultipliers(zone);
+      return {
+        speedMultiplier: multipliers.speed || 1.0,
+        damageMultiplier: multipliers.damage || 1.0,
+        spawnRateMultiplier: multipliers.spawnRate || 1.0
+      };
     }
     
     // Fallback to no multipliers

@@ -3,21 +3,21 @@
     {
       "name": "Surface Plateau",
       "region": {
-        "minX": 50,
-        "maxX": 150,
-        "minY": 0,
-        "maxY": 20
+        "minX": 20,
+        "maxX": 100,
+        "minY": 10,
+        "maxY": 30
       },
-      "wallDensity": 0.1,
+      "wallDensity": 0.10,
       "description": "Open starting area with easy navigation"
     },
     {
       "name": "Kelp Forest",
       "region": {
-        "minX": 200,
-        "maxX": 280,
-        "minY": 30,
-        "maxY": 70
+        "minX": 30,
+        "maxX": 90,
+        "minY": 80,
+        "maxY": 140
       },
       "wallDensity": 0.25,
       "description": "Dense vegetation providing moderate cover"
@@ -25,23 +25,23 @@
     {
       "name": "Rocky Cavern",
       "region": {
-        "minX": 100,
-        "maxX": 180,
-        "minY": 80,
-        "maxY": 130
+        "minX": 15,
+        "maxX": 105,
+        "minY": 200,
+        "maxY": 300
       },
-      "wallDensity": 0.4,
+      "wallDensity": 0.40,
       "description": "Tight corridors with frequent obstacles"
     },
     {
       "name": "Deep Trench",
       "region": {
-        "minX": 300,
-        "maxX": 400,
-        "minY": 150,
-        "maxY": 200
+        "minX": 35,
+        "maxX": 85,
+        "minY": 400,
+        "maxY": 520
       },
-      "wallDensity": 0.5,
+      "wallDensity": 0.50,
       "description": "Perilous deep zone with narrow passages"
     }
   ]

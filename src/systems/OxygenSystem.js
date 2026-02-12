@@ -28,9 +28,9 @@ export default class OxygenSystem {
   update(deltaSeconds) {
     if (!this.isActive || this.gameOverEmitted) return;
     
-    // Update player oxygen
+    // Deplete oxygen using difficulty-scaled rate (not player's hardcoded rate)
     const actualDepletion = this.depletionRate * this.terrainMultiplier * deltaSeconds;
-    this.player.updateOxygen(deltaSeconds);
+    this.player.oxygen = Math.max(0, this.player.oxygen - actualDepletion);
     
     // Track statistics
     this.totalOxygenConsumed += actualDepletion;
@@ -82,7 +82,7 @@ export default class OxygenSystem {
         this.lastBeepTime = currentTime;
       }
       this.warningEmitted = true;
-    } else if (this.player.oxygen > OXYGEN_CONFIG.WARNING_THRESHOLD && this.warningEmitted) {
+    } else if (this.player.oxygen > warningThreshold && this.warningEmitted) {
       // Reset warning flag if oxygen increases above threshold
       this.warningEmitted = false;
       this.lastBeepTime = -Infinity;
@@ -105,7 +105,7 @@ export default class OxygenSystem {
    */
   handleEnemyCollision() {
     const damage = OXYGEN_CONFIG.ENEMY_COLLISION_DAMAGE;
-    this.player.oxygen = Math.max(0, this.player.oxygen - damage);
+    this.player.takeDamage(damage);
     this.scene.events.emit('oxygen-damage', damage);
   }
   

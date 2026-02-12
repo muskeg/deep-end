@@ -17,7 +17,13 @@ export default class Eel extends Enemy {
    * @param {object} multipliers - Zone-based difficulty multipliers
    */
   constructor(scene, x, y, player, hidingPosition = null, multipliers = {}) {
-    super(scene, x, y, player, ENEMY_CONFIG.EEL.DETECTION_RADIUS);
+    super(scene, x, y, 'eel-left-0', player, ENEMY_CONFIG.EEL.DETECTION_RADIUS);
+    
+    // Animation properties
+    this.animationFrame = 0;
+    this.animationTimer = 0;
+    this.animationSpeed = 150; // ms per frame
+    this.currentDirection = 'left';
     
     // Apply zone multipliers
     const { speedMultiplier = 1.0, damageMultiplier = 1.0 } = multipliers;
@@ -137,35 +143,15 @@ export default class Eel extends Enemy {
   }
   
   /**
-   * Update visual representation
-   */
-  updateVisuals() {
-    this.graphics.clear();
-    
-    // Change color based on state
-    let color = 0x00aa00; // Green when idle
-    if (this.state === 'chasing') color = 0xffaa00; // Orange when chasing
-    if (this.state === 'lunging') color = 0xff0000; // Red when lunging
-    if (this.state === 'returning') color = 0x0088ff; // Blue when returning
-    
-    this.graphics.fillStyle(color, 0.7);
-    
-    // Draw eel body (elongated rectangle)
-    const bodyWidth = 40;
-    const bodyHeight = 16;
-    this.graphics.fillRect(this.x - bodyWidth / 2, this.y - bodyHeight / 2, bodyWidth, bodyHeight);
-    
-    // Draw head (circle)
-    this.graphics.fillCircle(this.x + bodyWidth / 2, this.y, 12);
-  }
-  
-  /**
    * Main update loop - state machine
    * @param {number} time - Current game time
    * @param {number} delta - Delta time since last frame
    */
   update(time, delta) {
     if (!this.isActive) return;
+    
+    // Update animation and direction
+    this.updateAnimation(delta);
     
     const currentTime = this.scene.time.now;
     
@@ -175,11 +161,31 @@ export default class Eel extends Enemy {
         // Check for player detection
         if (this.canDetectPlayer()) {
           this.state = 'chasing';
+          this.chaseTimer = 0;
           this.acquireTarget();
         }
         break;
         
       case 'chasing':
+        // Update chase timer and check abandon conditions
+        this.chaseTimer += delta;
+        
+        if (this.shouldAbandonChase()) {
+          this.state = 'returning';
+          this.loseTarget();
+          this.chaseTimer = 0;
+          this.currentPath = null;
+          this.pathIndex = 0;
+          break;
+        }
+        
+        // Update pathfinding periodically
+        this.lastPathfindTime += delta;
+        if (this.lastPathfindTime >= this.pathfindingInterval) {
+          this.updatePathfinding();
+          this.lastPathfindTime = 0;
+        }
+        
         // Check if lost player
         if (!this.canDetectPlayer()) {
           this.state = 'returning';
@@ -214,8 +220,30 @@ export default class Eel extends Enemy {
         this.returnToHiding(delta);
         break;
     }
+  }
+  
+  /**
+   * Update sprite animation and direction
+   * @param {number} delta - Delta time in milliseconds
+   */
+  updateAnimation(delta) {
+    // Determine direction from velocity
+    const vx = this.body.velocity.x;
+    const vy = this.body.velocity.y;
     
-    // Update visuals
-    this.updateVisuals();
+    if (Math.abs(vx) > Math.abs(vy)) {
+      this.currentDirection = vx > 0 ? 'right' : 'left';
+    } else if (Math.abs(vy) > 10) {
+      this.currentDirection = vy > 0 ? 'down' : 'up';
+    }
+    
+    // Update animation frame
+    this.animationTimer += delta;
+    
+    if (this.animationTimer >= this.animationSpeed) {
+      this.animationTimer = 0;
+      this.animationFrame = (this.animationFrame + 1) % 2;
+      this.setTexture(`eel-${this.currentDirection}-${this.animationFrame}`);
+    }
   }
 }
