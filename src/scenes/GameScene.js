@@ -293,11 +293,13 @@ export default class GameScene extends Phaser.Scene {
       sunLight.setIntensity(2); // Moderate intensity for natural look
     }
     
-    // Add point light that follows player
+    // Add point light that follows player (scaled by light upgrade)
+    const baseLightRadius = 300;
+    const lightRadius = baseLightRadius * (this.upgradeParams.lightMultiplier || 1.0);
     this.playerLight = this.lights.addLight(
       this.worldWidth / 2, 
       this.worldHeight / 2, 
-      300 // Light radius - increased for better visibility
+      lightRadius
     );
     this.playerLight.setColor(0xffffcc); // Warm yellow light from player's equipment
     this.playerLight.setIntensity(3); // Higher brightness for equipment light

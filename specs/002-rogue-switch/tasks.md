@@ -51,21 +51,21 @@
 
 ### Implementation for User Story 1
 
-- [ ] T011 [P] [US1] Create `src/scenes/ShopScene.js` class extending Phaser.Scene with create(), showUpgradeList(), onUpgradeClick(), onStartDiveClick() methods
-- [ ] T012 [P] [US1] Create `src/ui/ShopMenu.js` class with renderUpgradeList(upgrades), renderPearlBalance(), createPurchaseButton(upgrade) methods
-- [ ] T013 [US1] In ShopScene.create(), initialize ProgressionSystem, load pearl balance, load owned upgrades from LocalStorage
-- [ ] T014 [US1] In ShopScene.showUpgradeList(), render all 6 upgrade types with current level, next cost (baseCost * 1.5^level), and locked/unlocked state
-- [ ] T015 [US1] In ShopScene.onUpgradeClick(), validate pearl balance, call ProgressionSystem.purchaseUpgrade(), deduct cost, save to LocalStorage, refresh UI
-- [ ] T016 [US1] In ShopScene.onStartDiveClick(), load owned upgrades, transition to GameScene with upgrade parameters passed via scene data
-- [ ] T017 [US1] Update `src/scenes/GameScene.js` init(data) to receive upgrade parameters and pass to Player constructor
-- [ ] T018 [US1] Update `src/systems/OxygenSystem.js` to scale max oxygen by player.oxygenMultiplier (from upgrades)
-- [ ] T019 [US1] Update `src/entities/Player.js` light setup to scale light radius by player.lightMultiplier (from upgrades)
-- [ ] T020 [US1] Update `src/entities/Player.js` movement to scale speed by player.speedMultiplier (from upgrades)
-- [ ] T021 [US1] Update `src/entities/Pearl.js` to add collected pearls to ProgressionSystem instead of score
-- [ ] T022 [US1] Update `src/scenes/GameOverScene.js` to show "Return to Shop" button that transitions to ShopScene (preserving pearl balance)
-- [ ] T023 [US1] In GameScene, add ESC key handler that ends run voluntarily and transitions to ShopScene
-- [ ] T024 [US1] Add save() call in ProgressionSystem after each pearl collection and upgrade purchase
-- [ ] T025 [US1] Update `src/scenes/MenuScene.js` to check LocalStorage on start, show "Continue" button if save data exists, "New Game" to reset
+- [X] T011 [P] [US1] Create `src/scenes/ShopScene.js` class extending Phaser.Scene with create(), showUpgradeList(), onUpgradeClick(), onStartDiveClick() methods
+- [X] T012 [P] [US1] Create `src/ui/ShopMenu.js` class with renderUpgradeList(upgrades), renderPearlBalance(), createPurchaseButton(upgrade) methods
+- [X] T013 [US1] In ShopScene.create(), initialize ProgressionSystem, load pearl balance, load owned upgrades from LocalStorage
+- [X] T014 [US1] In ShopScene.showUpgradeList(), render all 6 upgrade types with current level, next cost (baseCost * 1.5^level), and locked/unlocked state
+- [X] T015 [US1] In ShopScene.onUpgradeClick(), validate pearl balance, call ProgressionSystem.purchaseUpgrade(), deduct cost, save to LocalStorage, refresh UI
+- [X] T016 [US1] In ShopScene.onStartDiveClick(), load owned upgrades, transition to GameScene with upgrade parameters passed via scene data
+- [X] T017 [US1] Update `src/scenes/GameScene.js` init(data) to receive upgrade parameters and pass to Player constructor
+- [X] T018 [US1] Update `src/systems/OxygenSystem.js` to scale max oxygen by player.oxygenMultiplier (from upgrades)
+- [X] T019 [US1] Update `src/entities/Player.js` light setup to scale light radius by player.lightMultiplier (from upgrades)
+- [X] T020 [US1] Update `src/entities/Player.js` movement to scale speed by player.speedMultiplier (from upgrades)
+- [X] T021 [US1] Update `src/entities/Pearl.js` to add collected pearls to ProgressionSystem instead of score
+- [X] T022 [US1] Update `src/scenes/GameOverScene.js` to show "Return to Shop" button that transitions to ShopScene (preserving pearl balance)
+- [X] T023 [US1] In GameScene, add ESC key handler that ends run voluntarily and transitions to ShopScene
+- [X] T024 [US1] Add save() call in ProgressionSystem after each pearl collection and upgrade purchase
+- [X] T025 [US1] Update `src/scenes/MenuScene.js` to check LocalStorage on start, show "Continue" button if save data exists, "New Game" to reset
 
 **Checkpoint**: User Story 1 complete - Core roguelike loop functional with persistent upgrades
 

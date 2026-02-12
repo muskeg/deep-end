@@ -54,10 +54,32 @@ export default class GameOverScene extends Phaser.Scene {
       text.setOrigin(0.5);
     });
     
-    // Restart button
-    const restartButton = this.add.text(width / 2, height - 120, 'RESTART', {
+    // Return to Shop button (primary action for roguelike loop)
+    const shopButton = this.add.text(width / 2, height - 170, 'RETURN TO SHOP', {
       font: 'bold 28px monospace',
       fill: '#ffffff',
+      backgroundColor: '#006600',
+      padding: { x: 20, y: 10 }
+    });
+    shopButton.setOrigin(0.5);
+    shopButton.setInteractive({ useHandCursor: true });
+    
+    shopButton.on('pointerover', () => {
+      shopButton.setStyle({ fill: '#00ff00' });
+    });
+    
+    shopButton.on('pointerout', () => {
+      shopButton.setStyle({ fill: '#ffffff' });
+    });
+    
+    shopButton.on('pointerdown', () => {
+      this.returnToShop();
+    });
+    
+    // Restart button
+    const restartButton = this.add.text(width / 2, height - 110, 'RESTART', {
+      font: 'bold 24px monospace',
+      fill: '#cccccc',
       backgroundColor: '#003d66',
       padding: { x: 20, y: 10 }
     });
@@ -69,7 +91,7 @@ export default class GameOverScene extends Phaser.Scene {
     });
     
     restartButton.on('pointerout', () => {
-      restartButton.setStyle({ fill: '#ffffff' });
+      restartButton.setStyle({ fill: '#cccccc' });
     });
     
     restartButton.on('pointerdown', () => {
@@ -77,7 +99,7 @@ export default class GameOverScene extends Phaser.Scene {
     });
     
     // Menu button
-    const menuButton = this.add.text(width / 2, height - 70, 'MAIN MENU', {
+    const menuButton = this.add.text(width / 2, height - 60, 'MAIN MENU', {
       font: '20px monospace',
       fill: '#aaaaaa'
     });
@@ -98,11 +120,15 @@ export default class GameOverScene extends Phaser.Scene {
     
     // Keyboard shortcuts
     this.input.keyboard.once('keydown-SPACE', () => {
-      this.restartGame();
+      this.returnToShop();
     });
     
     this.input.keyboard.once('keydown-ESC', () => {
       this.returnToMenu();
+    });
+    
+    this.input.keyboard.once('keydown-R', () => {
+      this.restartGame();
     });
     
     // Continue to next level if victory
@@ -130,6 +156,13 @@ export default class GameOverScene extends Phaser.Scene {
     this.cameras.main.fadeOut(300, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start(SCENES.GAME, { level: this.level + 1, score: this.score });
+    });
+  }
+
+  returnToShop() {
+    this.cameras.main.fadeOut(300, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.start(SCENES.SHOP);
     });
   }
 
