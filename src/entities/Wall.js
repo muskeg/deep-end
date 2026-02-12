@@ -48,8 +48,11 @@ export default class Wall extends Phaser.GameObjects.Graphics {
       this.tileSize
     );
     
-    // Subtle edge highlight
-    this.lineStyle(1, COLORS.WALL + 0x222222, 0.3);
+    // Subtle edge highlight (per-channel color addition)
+    const wr = Math.min(255, ((COLORS.WALL >> 16) & 0xFF) + 0x22);
+    const wg = Math.min(255, ((COLORS.WALL >> 8) & 0xFF) + 0x22);
+    const wb = Math.min(255, (COLORS.WALL & 0xFF) + 0x22);
+    this.lineStyle(1, (wr << 16) | (wg << 8) | wb, 0.3);
     this.strokeRect(
       this.worldX - this.tileSize / 2,
       this.worldY - this.tileSize / 2,

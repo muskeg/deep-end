@@ -8,6 +8,7 @@ import Enemy from '../entities/Enemy.js';
 import Jellyfish from '../entities/Jellyfish.js';
 import Eel from '../entities/Eel.js';
 import InputHandler from '../utils/InputHandler.js';
+import InputSystem from '../systems/InputSystem.js';
 import OxygenSystem from '../systems/OxygenSystem.js';
 import CurrentSystem from '../systems/CurrentSystem.js';
 import CollisionSystem from '../systems/CollisionSystem.js';
@@ -16,6 +17,7 @@ import DifficultySystem from '../systems/DifficultySystem.js';
 import DepthZoneSystem from '../systems/DepthZoneSystem.js';
 import CombatSystem from '../systems/CombatSystem.js';
 import PathfindingSystem from '../systems/PathfindingSystem.js';
+import EnemySpawnManager from '../systems/EnemySpawnManager.js';
 import ScoreManager from '../utils/ScoreManager.js';
 import AudioManager from '../utils/AudioManager.js';
 import ProgressionSystem from '../systems/ProgressionSystem.js';
@@ -67,9 +69,25 @@ export default class GameScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
-    // Define world size: fixed width for 4K, 10x deeper vertically
+    // Define world size: fixed width for 4K, initially smaller height that expands
     this.worldWidth = 3840; // 4K width (fixed across all devices)
-    this.worldHeight = height * 10; // 10x deeper than viewport
+    this.maxWorldHeight = 250000; // Maximum: 2500m (all zones)
+    this.chunkHeight = 30000; // Generate in 300m chunks
+    this.surfaceOffset = 1000; // Fixed surface offset in pixels (10m)
+    
+    // Chunk management system
+    this.chunkSize = 10000; // 100m chunks - smaller for better performance
+    this.chunkCache = new Map(); // Map<chunkIndex, {walls: [], generated: true}>
+    this.activeChunks = new Set(); // Currently loaded chunk indices
+    this.loadRadius = 3; // Load chunks within 3 chunks of player (300m radius)
+    this.worldSeed = this.currentLevel || 1; // Consistent seed for this dive
+    this.needsPathfindingRebuild = false; // Throttle pathfinding rebuilds
+    this.pathfindingRebuildDelay = 500; // Only rebuild every 500ms
+    this.lastPathfindingRebuild = 0;
+    
+    // Start with enough height to accommodate load radius
+    this.worldHeight = this.chunkSize * (this.loadRadius * 2 + 3); // 9 chunks = 900m initial
+    this.maxChunkIndex = Math.floor(this.maxWorldHeight / this.chunkSize);
     
     // Set world bounds
     this.physics.world.setBounds(0, 0, this.worldWidth, this.worldHeight);
@@ -99,12 +117,11 @@ export default class GameScene extends Phaser.Scene {
     this.createDepthDarknessOverlay();
     
     // Add water surface visual (lighter blue line at the top)
-    const surfaceHeight = this.worldHeight * 0.03;
     this.waterSurface = this.add.rectangle(
       this.worldWidth / 2, 
-      surfaceHeight / 2, 
+      this.surfaceOffset / 2, 
       this.worldWidth, 
-      surfaceHeight, 
+      this.surfaceOffset, 
       0x0066aa, // Lighter blue for surface
       0.3 // Semi-transparent
     );
@@ -114,7 +131,7 @@ export default class GameScene extends Phaser.Scene {
     // Surface line indicator
     this.surfaceLine = this.add.line(
       0, 
-      surfaceHeight, 
+      this.surfaceOffset, 
       0, 
       0, 
       this.worldWidth, 
@@ -127,24 +144,20 @@ export default class GameScene extends Phaser.Scene {
     this.surfaceLine.setDepth(10);
     this.surfaceLine.setPipeline('Light2D'); // Enable lighting
     
-    // Create player at center of world with upgrade parameters
-    this.player = new Player(this, this.worldWidth / 2, this.worldHeight / 2, this.upgradeParams);
+    // Create player just below surface
+    this.player = new Player(this, this.worldWidth / 2, this.surfaceOffset + 100, this.upgradeParams);
     
     // Camera follows player
     this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     
-    // Create input handler
+    // Create unified input system (handles keyboard, gamepad, and touch)
+    this.inputSystem = new InputSystem(this, this.player);
+    
+    // Create input handler (backwards compatibility)
     this.inputHandler = new InputHandler(this);
     
-    // Setup combat input callbacks
-    this.inputHandler.onAttack(() => {
-      const harpoon = this.player.fireHarpoon();
-      if (harpoon) {
-        this.harpoons.push(harpoon);
-      }
-    });
-    
+    // Setup dash callback (harpoon is now handled by InputSystem)
     this.inputHandler.onDash(() => {
       const success = this.player.activateDash();
       if (success && this.dashCooldownUI) {
@@ -177,6 +190,9 @@ export default class GameScene extends Phaser.Scene {
     
     // Create pathfinding system
     this.pathfindingSystem = new PathfindingSystem(this);
+    
+    // Create enemy spawn manager
+    this.enemySpawnManager = new EnemySpawnManager(this);
     
     // Apply oxygen depletion rate from difficulty
     this.oxygenSystem.setDepletionRate(difficulty.oxygenRate);
@@ -221,10 +237,27 @@ export default class GameScene extends Phaser.Scene {
       }
     });
     
+    // P key to toggle pause
+    this.input.keyboard.on('keydown-P', () => {
+      this.togglePause();
+    });
+    
     // M key to toggle audio
     this.input.keyboard.on('keydown-M', () => {
       const enabled = this.audioManager.toggle();
       console.log(`Audio ${enabled ? 'enabled' : 'muted'}`);
+    });
+
+    // DEBUG: I key to dump enemy info
+    this.input.keyboard.on('keydown-I', () => {
+      const playerDepthM = Math.max(0, (this.player.y - this.surfaceOffset) / 100);
+      console.log(`[DEBUG] Player at y=${this.player.y.toFixed(0)} depth=${playerDepthM.toFixed(1)}m | Total enemies: ${this.enemies.length}`);
+      this.enemies.forEach((e, i) => {
+        const dM = Math.max(0, (e.y - this.surfaceOffset) / 100);
+        console.log(`  Enemy ${i}: ${e.constructor.name} pos=(${e.x.toFixed(0)},${e.y.toFixed(0)}) depth=${dM.toFixed(1)}m active=${e.active} visible=${e.visible}`);
+      });
+      console.log(`[DEBUG] Spawned chunks: ${Array.from(this.enemySpawnManager.spawnedChunks).sort((a,b)=>a-b).join(',')}`);
+      console.log(`[DEBUG] Active chunks: ${Array.from(this.activeChunks).sort((a,b)=>a-b).join(',')}`);
     });
     
     // Handle window resize
@@ -271,39 +304,14 @@ export default class GameScene extends Phaser.Scene {
   }
   
   /**
-   * Generate procedural cavern using Cellular Automata
+   * Generate procedural cavern using chunk system
    */
   generateProceduralCavern() {
     const tileSize = GAME_CONFIG.TILE_SIZE;
     const gridWidth = Math.floor(this.worldWidth / tileSize);
-    const gridHeight = Math.floor(this.worldHeight / tileSize);
-    
-    // Generate cavern
-    const generator = new CavernGenerator(gridWidth, gridHeight);
-    const grid = generator.generate(10, this.currentLevel); // Use level as seed
-    
-    // Create walls from grid
-    for (let y = 0; y < gridHeight; y++) {
-      for (let x = 0; x < gridWidth; x++) {
-        if (grid[y][x] === 1) {
-          const wall = new Wall(this, x, y, tileSize);
-          this.walls.push(wall);
-          this.collisionSystem.addWall(wall.getBody());
-        }
-      }
-    }
-    
-    // Build pathfinding grid from walls
-    const wallRects = this.walls.map(wall => ({
-      x: wall.x - wall.tileSize / 2,
-      y: wall.y - wall.tileSize / 2,
-      width: wall.tileSize,
-      height: wall.tileSize
-    }));
-    this.pathfindingSystem.buildGrid(wallRects, this.worldWidth, this.worldHeight);
     
     // Create invisible walls at water surface to prevent entities from going above
-    const surfaceGridY = Math.floor(gridHeight * 0.03);
+    const surfaceGridY = Math.floor(this.surfaceOffset / tileSize);
     for (let x = 0; x < gridWidth; x++) {
       const surfaceWall = this.add.rectangle(
         x * tileSize + tileSize / 2,
@@ -317,8 +325,204 @@ export default class GameScene extends Phaser.Scene {
       this.collisionSystem.addWall(surfaceWall.body);
     }
     
-    // Get open positions for entity placement
-    const openPositions = generator.getOpenPositions();
+    // Load initial chunks - just enough for immediate area
+    const spawnChunkIndex = this.getChunkIndex(this.surfaceOffset + 100);
+    console.log(`[Init] Loading initial chunks starting from spawn chunk ${spawnChunkIndex}`);
+    
+    // Pre-load chunks 0-4 (first 400m)
+    for (let i = 0; i <= 4; i++) {
+      console.log(`[Init] Loading chunk ${i} (${i * this.chunkSize}px - ${(i + 1) * this.chunkSize}px)`);
+      this.loadChunk(i);
+    }
+    
+    console.log(`[Init] Loaded chunks: ${Array.from(this.activeChunks).sort().join(',')}, total walls: ${this.walls.length}, total enemies: ${this.enemies.length}`);
+    // Debug: log enemy positions
+    this.enemies.forEach((e, i) => {
+      const depthM = Math.max(0, (e.y - this.surfaceOffset) / 100);
+      console.log(`[Init] Enemy ${i}: type=${e.constructor.name} pos=(${e.x.toFixed(0)}, ${e.y.toFixed(0)}) depth=${depthM.toFixed(1)}m active=${e.active}`);
+    });
+  }
+  
+  /**
+   * Get chunk index from Y position
+   */
+  getChunkIndex(y) {
+    return Math.floor(y / this.chunkSize);
+  }
+  
+  /**
+   * Generate chunk data (cached) - only generates grid data, doesn't create game objects
+   */
+  generateChunkData(chunkIndex) {
+    // Check cache first
+    if (this.chunkCache.has(chunkIndex)) {
+      return this.chunkCache.get(chunkIndex);
+    }
+    
+    const tileSize = GAME_CONFIG.TILE_SIZE;
+    const gridWidth = Math.floor(this.worldWidth / tileSize);
+    const chunkHeightTiles = Math.floor(this.chunkSize / tileSize);
+    
+    // Only chunk 0 has the water surface; no chunk forces a solid bottom
+    // (chunks must tile seamlessly)
+    const isFirstChunk = chunkIndex === 0;
+    
+    // Get the last row from the previous chunk for seam continuity
+    let topOverlapRow = null;
+    if (chunkIndex > 0) {
+      const prevChunkData = this.generateChunkData(chunkIndex - 1);
+      topOverlapRow = prevChunkData.lastRow;
+    }
+    
+    // Generate cavern chunk with consistent seed
+    const generator = new CavernGenerator(gridWidth, chunkHeightTiles, 0.30);
+    const result = generator.generate(10, this.worldSeed + chunkIndex * 1000, {
+      hasSurface: isFirstChunk,
+      hasBottom: false, // Never force solid bottom — chunks must connect
+      topOverlapRow: topOverlapRow
+    });
+    
+    const grid = result.grid;
+    const openPositions = result.openPositions;
+    
+    // Store wall positions (not objects yet)
+    const wallPositions = [];
+    
+    for (let y = 0; y < chunkHeightTiles; y++) {
+      for (let x = 0; x < gridWidth; x++) {
+        if (grid[y][x] === 1) {
+          wallPositions.push({ x, y: y + chunkIndex * chunkHeightTiles });
+        }
+      }
+    }
+    
+    // Cache the last row of this chunk's grid for the next chunk's seam blending
+    const lastRow = grid[chunkHeightTiles - 1].slice();
+    
+    // Store chunk data including openPositions for enemy spawning
+    const chunkData = { 
+      wallPositions, 
+      lastRow, 
+      openPositions,  // Add open positions for spawning
+      generated: true,
+      spawned: false  // Track if enemies already spawned
+    };
+    this.chunkCache.set(chunkIndex, chunkData);
+    return chunkData;
+  }
+  
+  /**
+   * Load a chunk (create game objects from cached data)
+   */
+  loadChunk(chunkIndex) {
+    if (this.activeChunks.has(chunkIndex)) return; // Already loaded
+    
+    const chunkData = this.generateChunkData(chunkIndex);
+    const tileSize = GAME_CONFIG.TILE_SIZE;
+    
+    // Create wall objects in batches to avoid frame drops
+    const chunkWalls = [];
+    const batchSize = 100; // Process 100 walls at a time
+    
+    for (let i = 0; i < chunkData.wallPositions.length; i += batchSize) {
+      const batch = chunkData.wallPositions.slice(i, i + batchSize);
+      for (const pos of batch) {
+        const wall = new Wall(this, pos.x, pos.y, tileSize);
+        this.walls.push(wall);
+        this.collisionSystem.addWall(wall.getBody());
+        chunkWalls.push(wall);
+      }
+    }
+    
+    // Track active chunk and its walls
+    this.activeChunks.add(chunkIndex);
+    chunkData.activeWalls = chunkWalls;
+    
+    // Spawn enemies if this chunk hasn't been spawned yet
+    if (!chunkData.spawned && this.enemySpawnManager) {
+      this.enemySpawnManager.onChunkLoaded(chunkIndex, chunkData);
+      chunkData.spawned = true;
+    }
+  }
+  
+  /**
+   * Unload a chunk (destroy game objects, keep cached data)
+   */
+  unloadChunk(chunkIndex) {
+    if (!this.activeChunks.has(chunkIndex)) return; // Not loaded
+    
+    const chunkData = this.chunkCache.get(chunkIndex);
+    if (!chunkData || !chunkData.activeWalls) return;
+    
+    // Destroy wall objects
+    for (const wall of chunkData.activeWalls) {
+      this.collisionSystem.removeWall(wall.getBody());
+      const index = this.walls.indexOf(wall);
+      if (index > -1) this.walls.splice(index, 1);
+      wall.destroy();
+    }
+    
+    chunkData.activeWalls = null;
+    this.activeChunks.delete(chunkIndex);
+  }
+  
+  /**
+   * Load chunks around player position (never unload)
+   */
+  loadChunksAroundPlayer(centerChunkIndex) {
+    const chunksToLoad = new Set();
+    
+    // Load chunks within radius
+    for (let offset = -this.loadRadius; offset <= this.loadRadius + 2; offset++) { // +2 for extra buffer ahead
+      const chunkIndex = centerChunkIndex + offset;
+      if (chunkIndex >= 0 && chunkIndex <= this.maxChunkIndex) {
+        chunksToLoad.add(chunkIndex);
+      }
+    }
+    
+    // Load new chunks (never unload)
+    for (const chunkIndex of chunksToLoad) {
+      this.loadChunk(chunkIndex);
+    }
+    
+    // Expand world bounds if needed
+    const maxLoadedChunk = Math.max(...this.activeChunks);
+    const requiredHeight = (maxLoadedChunk + 2) * this.chunkSize; // +2 for buffer
+    if (requiredHeight > this.worldHeight) {
+      this.worldHeight = Math.min(requiredHeight, this.maxWorldHeight);
+      this.physics.world.setBounds(0, 0, this.worldWidth, this.worldHeight);
+      this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
+    }
+    
+    // Mark that pathfinding needs rebuild (DISABLED for performance)
+    // Pathfinding is expensive and enemies use simple movement
+    // this.needsPathfindingRebuild = true;
+  }
+  
+  /**
+   * Rebuild pathfinding grid from active walls only
+   */
+  rebuildPathfinding() {
+    const wallRects = this.walls.map(wall => ({
+      x: wall.x - wall.tileSize / 2,
+      y: wall.y - wall.tileSize / 2,
+      width: wall.tileSize,
+      height: wall.tileSize
+    }));
+    this.pathfindingSystem.buildGrid(wallRects, this.worldWidth, this.worldHeight);
+  }
+  
+  /**
+   * Spawn entities in the game world
+   */
+  spawnEntities() {
+    const tileSize = GAME_CONFIG.TILE_SIZE;
+    const gridWidth = Math.floor(this.worldWidth / tileSize);
+    const gridHeight = Math.floor(this.worldHeight / tileSize);
+    const surfaceGridY = Math.floor(this.surfaceOffset / tileSize);
+
+    // Get open positions for entity placement (skip for now in chunked generation)
+    const openPositions = [];
     
     // Filter out positions in surface zone (top 3%)
     const underwaterPositions = openPositions.filter(pos => pos.y > surfaceGridY);
@@ -590,11 +794,63 @@ export default class GameScene extends Phaser.Scene {
   update(time, delta) {
     if (this.gameOver || this.isPaused) return;
     
-    // Get input
-    const input = this.inputHandler.getMovementInput();
+    // Get unified input (keyboard, gamepad, or touch)
+    const unifiedInput = this.inputSystem.update(delta);
+    
+    // Get legacy input for backwards compatibility
+    const legacyInput = this.inputHandler.getMovementInput();
+    
+    // Merge inputs (unified takes priority)
+    const input = {
+      ...legacyInput,
+      ...unifiedInput
+    };
+    
+    // Handle actions from unified input
+    if (unifiedInput.harpoon) {
+      const harpoon = this.player.fireHarpoon();
+      if (harpoon) {
+        this.harpoons.push(harpoon);
+      }
+    }
+    
+    if (unifiedInput.dash) {
+      const success = this.player.activateDash();
+      if (success && this.dashCooldownUI) {
+        this.dashCooldownUI.startCooldown(this.player.dashAbility.cooldown);
+      }
+    }
     
     // Update player movement
     this.player.handleMovement(input);
+    
+    // Proactive world bounds expansion - expand before player hits boundary
+    const distanceFromBottom = this.worldHeight - this.player.y;
+    const expansionThreshold = this.chunkSize * 2; // Expand when within 200m of bottom
+    if (distanceFromBottom < expansionThreshold && this.worldHeight < this.maxWorldHeight) {
+      const newHeight = Math.min(this.worldHeight + this.chunkSize * 3, this.maxWorldHeight);
+      console.log(`[World] Expanding from ${this.worldHeight}px to ${newHeight}px (player at ${this.player.y}px)`);
+      this.worldHeight = newHeight;
+      this.physics.world.setBounds(0, 0, this.worldWidth, this.worldHeight);
+      this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
+    }
+    
+    // Spatial chunk loading - check periodically every 30 frames (~0.5 seconds)
+    if (!this.chunkLoadCounter) this.chunkLoadCounter = 0;
+    this.chunkLoadCounter++;
+    
+    if (this.chunkLoadCounter >= 30) {
+      const currentChunk = this.getChunkIndex(this.player.y);
+      this.loadChunksAroundPlayer(currentChunk);
+      this.chunkLoadCounter = 0;
+    }
+    
+    // Throttled pathfinding rebuild (DISABLED for performance)
+    // if (this.needsPathfindingRebuild && time - this.lastPathfindingRebuild > this.pathfindingRebuildDelay) {
+    //   this.rebuildPathfinding();
+    //   this.needsPathfindingRebuild = false;
+    //   this.lastPathfindingRebuild = time;
+    // }
     
     // Update player abilities (dash and harpoon cooldowns)
     this.player.updateAbilities(delta);
@@ -617,24 +873,23 @@ export default class GameScene extends Phaser.Scene {
     // Update collision system (includes enemy collisions)
     this.collisionSystem.update(deltaSeconds);
     
-    // Update harpoons
-    this.harpoons.forEach((harpoon, index) => {
-      if (harpoon.active) {
-        harpoon.update(time, delta);
-        
-        // Check collision with enemies
-        this.enemies.forEach(enemy => {
-          if (enemy.active && Phaser.Geom.Intersects.RectangleToRectangle(harpoon.getBounds(), enemy.getBounds())) {
-            const damage = harpoon.onEnemyCollision(enemy);
-            if (damage > 0) {
-              this.combatSystem.dealDamage(enemy, damage);
-            }
+    // Update harpoons (filter to remove inactive ones safely)
+    this.harpoons = this.harpoons.filter(harpoon => {
+      if (!harpoon.active) return false;
+      
+      harpoon.update(time, delta);
+      
+      // Check collision with enemies
+      this.enemies.forEach(enemy => {
+        if (enemy.active && Phaser.Geom.Intersects.RectangleToRectangle(harpoon.getBounds(), enemy.getBounds())) {
+          const damage = harpoon.onEnemyCollision(enemy);
+          if (damage > 0) {
+            this.combatSystem.dealDamage(enemy, damage);
           }
-        });
-      } else {
-        // Remove inactive harpoons
-        this.harpoons.splice(index, 1);
-      }
+        }
+      });
+      
+      return harpoon.active; // Keep only if still active after update
     });
     
     // Update enemies
@@ -644,14 +899,24 @@ export default class GameScene extends Phaser.Scene {
       }
     });
     
+    // Cull off-screen enemies to maintain performance
+    if (this.enemySpawnManager && this.enemies.length > 0) {
+      // Run culling every 2 seconds (not every frame)
+      if (!this.lastCullTime || time - this.lastCullTime > 2000) {
+        this.enemySpawnManager.cullOffScreenEnemies(this.player.y);
+        this.lastCullTime = time;
+      }
+    }
+    
     // Update UI
-    this.oxygenMeter.update(this.player.oxygen);
+    const oxygenPercent = (this.player.oxygen / this.player.maxOxygen) * 100;
+    this.oxygenMeter.update(oxygenPercent);
     this.fpsDisplay.update(time, delta);
     
-    // Update depth meter
-    const depthInMeters = this.player.y / 100;
+    // Update depth meter (relative to surface)
+    const depthInMeters = Math.max(0, (this.player.y - this.surfaceOffset) / 100);
     this.depthMeter.updateDepth(depthInMeters);
-    const currentZone = this.depthZoneSystem.getCurrentZone(this.player.y);
+    const currentZone = this.depthZoneSystem.getCurrentZone(this.player.y - this.surfaceOffset);
     this.depthMeter.displayZoneName(currentZone.name);
     
     // Update player visuals
@@ -673,16 +938,16 @@ export default class GameScene extends Phaser.Scene {
     // Update depth darkness effect to follow camera
     this.updateDepthDarkness();
     
-    // Check for clam interaction
-    if (this.inputHandler.isInteractJustPressed()) {
-      this.checkClamInteraction();
-    }
+    // Check for clam interaction (E key, gamepad button, or touch button)
+    this.checkClamInteraction(unifiedInput.interact);
   }
   
   /**
    * Check if player can interact with nearby clams
    */
-  checkClamInteraction() {
+  checkClamInteraction(interactPressed) {
+    if (!interactPressed) return;
+    
     this.clams.forEach(clam => {
       if (clam.canInteract() && this.player.canInteractWith(clam)) {
         clam.open();
@@ -709,24 +974,9 @@ export default class GameScene extends Phaser.Scene {
   }
 
   resize(gameSize) {
-    const width = gameSize.width;
-    const height = gameSize.height;
+    // Do not overwrite worldWidth/worldHeight — they are managed by the chunk system.
+    // Only reposition UI elements that need to adapt to new viewport size.
     
-    // Update world size to be 3x viewport
-    this.worldWidth = width * 3;
-    this.worldHeight = height * 3;
-    
-    // Update background size
-    if (this.background) {
-      this.background.setSize(this.worldWidth, this.worldHeight);
-      this.background.setPosition(this.worldWidth / 2, this.worldHeight / 2);
-    }
-    
-    // Update camera and physics bounds
-    this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
-    this.physics.world.setBounds(0, 0, this.worldWidth, this.worldHeight);
-    
-    // Update UI positions (UI stays fixed to camera)
     if (this.oxygenMeter) {
       this.oxygenMeter.setScrollFactor(0);
     }
@@ -743,7 +993,7 @@ export default class GameScene extends Phaser.Scene {
     this.progressionSystem.updateStatistic('totalDeaths', 1);
     
     // Update deepest depth if applicable
-    const currentDepth = this.player.y / 100; // Convert pixels to meters (approximate)
+    const currentDepth = Math.max(0, (this.player.y - this.surfaceOffset) / 100); // Convert pixels to meters (relative to surface)
     if (currentDepth > this.progressionSystem.getStatistics().deepestDepthReached) {
       this.progressionSystem.updateStatistic('deepestDepthReached', currentDepth, true);
     }
@@ -772,7 +1022,7 @@ export default class GameScene extends Phaser.Scene {
     this.gameOver = true;
     
     // Update statistics
-    const currentDepth = this.player.y / 100;
+    const currentDepth = Math.max(0, (this.player.y - this.surfaceOffset) / 100);
     if (currentDepth > this.progressionSystem.getStatistics().deepestDepthReached) {
       this.progressionSystem.updateStatistic('deepestDepthReached', currentDepth, true);
     }

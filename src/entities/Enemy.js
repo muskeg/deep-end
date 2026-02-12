@@ -12,15 +12,19 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
    * @param {Phaser.Scene} scene - The scene this enemy belongs to
    * @param {number} x - Initial x position
    * @param {number} y - Initial y position
+   * @param {string} texture - The texture key to use
    * @param {Phaser.Physics.Arcade.Sprite} player - Reference to the player
    * @param {number} detectionRadius - How far the enemy can detect the player (default 200)
    */
-  constructor(scene, x, y, player, detectionRadius = 200) {
-    super(scene, x, y, 'enemy');
+  constructor(scene, x, y, texture, player, detectionRadius = 200) {
+    super(scene, x, y, texture);
     
     this.scene = scene;
     this.player = player;
     this.detectionRadius = detectionRadius;
+    
+    // Spawn tracking for culling
+    this.spawnTimestamp = Date.now();
     
     // Health system
     this.maxHealth = 20; // Default, overridden by subclasses
@@ -55,13 +59,11 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     // Set up physics body
     this.body.setCircle(16);
     
-    // Hide the sprite itself (we use graphics for visuals)
-    this.setAlpha(0);
+    // Set display size for sprite visibility
+    this.setDisplaySize(48, 48);
     
-    // Visual representation (placeholder)
-    this.graphics = scene.add.graphics();
-    this.graphics.setPipeline('Light2D'); // Enable lighting
-    this.updateVisuals();
+    // Enable lighting on sprite
+    this.setPipeline('Light2D');
   }
   
   /**
@@ -154,33 +156,6 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     if (!active) {
       this.body.velocity.x = 0;
       this.body.velocity.y = 0;
-    }
-  }
-  
-  /**
-   * Update visual representation
-   */
-  updateVisuals() {
-    this.graphics.clear();
-    
-    // Draw enemy as a circle
-    const color = this.hasTarget ? 0xff0000 : 0xff6600;
-    this.graphics.fillStyle(color, 0.7);
-    this.graphics.fillCircle(this.x, this.y, 16);
-    
-    // Draw health bar
-    if (this.health < this.maxHealth) {
-      const barWidth = 32;
-      const barHeight = 4;
-      const healthPercent = this.health / this.maxHealth;
-      
-      // Background
-      this.graphics.fillStyle(0x000000, 0.7);
-      this.graphics.fillRect(this.x - barWidth / 2, this.y - 25, barWidth, barHeight);
-      
-      // Health fill
-      this.graphics.fillStyle(healthPercent > 0.5 ? 0x00FF00 : (healthPercent > 0.25 ? 0xFFAA00 : 0xFF0000), 1);
-      this.graphics.fillRect(this.x - barWidth / 2, this.y - 25, barWidth * healthPercent, barHeight);
     }
   }
   
@@ -321,18 +296,13 @@ export default class Enemy extends Phaser.Physics.Arcade.Sprite {
     } else if (!this.hasTarget) {
       this.loseTarget();
     }
-    
-    // Update visuals
-    this.updateVisuals();
   }
   
   /**
    * Clean up resources
    */
   destroy() {
-    if (this.graphics) {
-      this.graphics.destroy();
-    }
+    this.isActive = false;
     super.destroy();
   }
 }

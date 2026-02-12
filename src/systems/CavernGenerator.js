@@ -51,18 +51,23 @@ export default class CavernGenerator {
   /**
    * Generate initial grid with random walls and spaces
    * @param {number} density - Percentage of walls (0-1)
+   * @param {Object} options - Generation options
+   * @param {boolean} options.hasSurface - Whether this chunk includes the water surface (top zone clear)
+   * @param {boolean} options.hasBottom - Whether to force the bottom row as solid wall
+   * @param {number[]} options.topOverlapRow - Last row from previous chunk for seam continuity
    */
-  generateInitialGrid(density = this.initialDensity) {
+  generateInitialGrid(density = this.initialDensity, options = {}) {
+    const { hasSurface = true, hasBottom = true, topOverlapRow = null } = options;
     this.grid = [];
     
     // Define water surface zone (top 3% is surface, next 7% is wall-free zone = 10% total)
     const surfaceZoneHeight = Math.floor(this.height * 0.03);
-    const wallFreeZoneHeight = Math.floor(this.height * 0.10); // 10% wall-free zone
+    const wallFreeZoneHeight = hasSurface ? Math.floor(this.height * 0.10) : 0;
     
     for (let y = 0; y < this.height; y++) {
       this.grid[y] = [];
       for (let x = 0; x < this.width; x++) {
-        // Water surface + wall-free zone: always open (no walls near top)
+        // Water surface + wall-free zone: always open (only for surface chunk)
         if (y < wallFreeZoneHeight) {
           this.grid[y][x] = 0;
         }
@@ -70,13 +75,21 @@ export default class CavernGenerator {
         else if (x === 0 || x === this.width - 1) {
           this.grid[y][x] = 1;
         }
-        // Force bottom border to be wall
-        else if (y === this.height - 1) {
+        // Force bottom border to be wall only if this chunk has a hard bottom
+        else if (y === this.height - 1 && hasBottom) {
           this.grid[y][x] = 1;
         } else {
           // Random wall based on density
           this.grid[y][x] = this.random() < density ? 1 : 0;
         }
+      }
+    }
+    
+    // If we have overlap from the previous chunk, copy it into row 0
+    // so the cellular automata smoothing creates continuity
+    if (topOverlapRow && topOverlapRow.length === this.width) {
+      for (let x = 0; x < this.width; x++) {
+        this.grid[0][x] = topOverlapRow[x];
       }
     }
   }
@@ -112,9 +125,11 @@ export default class CavernGenerator {
    * Birth threshold: 5+ neighbors = become wall
    * Death threshold: <3 neighbors = become open
    * @param {number} iterations - Number of smoothing passes
+   * @param {Object} options - Options controlling border behavior
    */
-  smoothGrid(iterations = CAVERN_CONFIG.ITERATIONS) {
-    const wallFreeZoneHeight = Math.floor(this.height * 0.10); // 10% wall-free zone
+  smoothGrid(iterations = CAVERN_CONFIG.ITERATIONS, options = {}) {
+    const { hasSurface = true, hasBottom = true } = options;
+    const wallFreeZoneHeight = hasSurface ? Math.floor(this.height * 0.10) : 0;
     
     for (let i = 0; i < iterations; i++) {
       const newGrid = [];
@@ -122,14 +137,20 @@ export default class CavernGenerator {
       for (let y = 0; y < this.height; y++) {
         newGrid[y] = [];
         for (let x = 0; x < this.width; x++) {
-          // Keep wall-free zone always open (top 10%)
+          // Keep wall-free zone always open (only for surface chunk)
           if (y < wallFreeZoneHeight) {
             newGrid[y][x] = 0;
             continue;
           }
           
-          // Keep left, right, and bottom borders as walls
-          if (x === 0 || x === this.width - 1 || y === this.height - 1) {
+          // Keep left and right borders as walls
+          if (x === 0 || x === this.width - 1) {
+            newGrid[y][x] = 1;
+            continue;
+          }
+          
+          // Keep bottom border as wall only if this chunk has a hard bottom
+          if (y === this.height - 1 && hasBottom) {
             newGrid[y][x] = 1;
             continue;
           }
@@ -233,25 +254,37 @@ export default class CavernGenerator {
    * Retries until valid cavern is created
    * @param {number} maxAttempts - Maximum generation attempts
    * @param {number} seed - Optional seed for deterministic generation
-   * @returns {number[][]} Generated grid (0=open, 1=wall)
+   * @param {Object} options - Generation options (hasSurface, hasBottom, topOverlapRow)
+   * @returns {{grid: number[][], openPositions: Array<{x: number, y: number}>}} Generated grid and open positions
    */
-  generate(maxAttempts = 50, seed = null) {
+  generate(maxAttempts = 50, seed = null, options = {}) {
     if (seed !== null) {
       this.setSeed(seed);
     }
     
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      this.generateInitialGrid();
-      this.smoothGrid();
+      this.generateInitialGrid(this.initialDensity, options);
+      this.smoothGrid(CAVERN_CONFIG.ITERATIONS, options);
       
       if (this.isConnected() && this.validateOpenSpace()) {
-        return this.grid;
+        return {
+          grid: this.grid,
+          openPositions: this.getOpenPositions()
+        };
+      }
+      
+      // Increment seed slightly for each retry to get a different result
+      if (seed !== null) {
+        this.setSeed(seed + attempt + 1);
       }
     }
     
     // Failed to generate valid cavern, return last attempt
     console.warn(`CavernGenerator: Failed to generate valid cavern after ${maxAttempts} attempts`);
-    return this.grid;
+    return {
+      grid: this.grid,
+      openPositions: this.getOpenPositions()
+    };
   }
 
   /**

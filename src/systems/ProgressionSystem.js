@@ -4,11 +4,18 @@ import upgradesData from '../data/upgrades.json';
 /**
  * ProgressionSystem
  * Manages player progression: pearls, upgrades, statistics
+ * Uses singleton pattern so all scenes share the same instance.
  */
+let _instance = null;
+
 export default class ProgressionSystem extends LocalStorageManager {
   constructor() {
+    if (_instance) {
+      return _instance;
+    }
     super('deepend_progression');
     
+    _instance = this;
     this.pearls = 0;
     this.upgrades = {};
     this.statistics = {
@@ -217,5 +224,12 @@ export default class ProgressionSystem extends LocalStorageManager {
 
     this.clear();
     console.log('[Progression] Reset to new game state');
+  }
+
+  /**
+   * Clear singleton instance (for testing or full reset)
+   */
+  static clearInstance() {
+    _instance = null;
   }
 }

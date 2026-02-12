@@ -19,7 +19,8 @@ export default class InputHandler {
       SPACE: 'SPACE',
       ESC: 'ESC',
       Q: 'Q',
-      SHIFT: 'SHIFT'
+      SHIFT: 'SHIFT',
+      E: 'E'
     });
     
     // Track just-pressed state
@@ -57,18 +58,18 @@ export default class InputHandler {
    * Check if interact button is pressed
    */
   isInteractPressed() {
-    if (!this.enabled || !this.keys.SPACE) return false;
-    return this.keys.SPACE.isDown;
+    if (!this.enabled || !this.keys.E) return false;
+    return this.keys.E.isDown;
   }
   
   /**
    * Check if interact button was just pressed (this frame)
    */
   isInteractJustPressed() {
-    if (!this.enabled || !this.keys.SPACE) return false;
+    if (!this.enabled || !this.keys.E) return false;
     
-    const isDown = this.keys.SPACE.isDown;
-    const duration = this.keys.SPACE.getDuration ? this.keys.SPACE.getDuration() : 100;
+    const isDown = this.keys.E.isDown;
+    const duration = this.keys.E.getDuration ? this.keys.E.getDuration() : 100;
     
     return isDown && duration < 50; // Just pressed within 50ms
   }
@@ -94,15 +95,7 @@ export default class InputHandler {
    */
   onInteract(callback) {
     this.interactCallback = callback;
-    this.scene.input.keyboard.on('keydown-SPACE', callback);
-  }
-
-  /**
-   * Register attack callback
-   */
-  onAttack(callback) {
-    this.attackCallback = callback;
-    this.scene.input.keyboard.on('keydown-Q', callback);
+    this.scene.input.keyboard.on('keydown-E', callback);
   }
 
   /**
@@ -248,7 +241,7 @@ export default class InputHandler {
    */
   cleanup() {
     if (this.interactCallback) {
-      this.scene.input.keyboard.off('keydown-SPACE', this.interactCallback);
+      this.scene.input.keyboard.off('keydown-E', this.interactCallback);
     }
     if (this.pauseCallback) {
       this.scene.input.keyboard.off('keydown-ESCAPE', this.pauseCallback);

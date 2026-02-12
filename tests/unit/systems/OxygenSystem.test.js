@@ -27,9 +27,15 @@ describe('OxygenSystem', () => {
 
     mockPlayer = {
       oxygen: PLAYER_CONFIG.INITIAL_OXYGEN,
+      maxOxygen: PLAYER_CONFIG.INITIAL_OXYGEN,
       updateOxygen: jest.fn(),
+      takeDamage: null,
       isAlive: jest.fn(() => true)
     };
+    // Create takeDamage as a jest.fn that modifies mockPlayer.oxygen
+    mockPlayer.takeDamage = jest.fn((damage) => {
+      mockPlayer.oxygen = Math.max(0, mockPlayer.oxygen - damage);
+    });
   });
 
   describe('Initialization', () => {
@@ -56,11 +62,13 @@ describe('OxygenSystem', () => {
   describe('Oxygen Depletion', () => {
     test('should deplete oxygen over time', () => {
       const system = new OxygenSystem(mockScene, mockPlayer);
+      const initialOxygen = mockPlayer.oxygen;
       const deltaSeconds = 1.0;
       
       system.update(deltaSeconds);
       
-      expect(mockPlayer.updateOxygen).toHaveBeenCalledWith(deltaSeconds);
+      const expectedDepletion = OXYGEN_CONFIG.BASE_DEPLETION_RATE * deltaSeconds;
+      expect(mockPlayer.oxygen).toBe(initialOxygen - expectedDepletion);
     });
 
     test('should use base depletion rate by default', () => {
@@ -99,12 +107,13 @@ describe('OxygenSystem', () => {
 
     test('should resume depletion after unpause', () => {
       const system = new OxygenSystem(mockScene, mockPlayer);
+      const initialOxygen = mockPlayer.oxygen;
       
       system.pause();
       system.resume();
       system.update(1.0);
       
-      expect(mockPlayer.updateOxygen).toHaveBeenCalled();
+      expect(mockPlayer.oxygen).toBeLessThan(initialOxygen);
     });
   });
 
@@ -238,6 +247,7 @@ describe('OxygenSystem', () => {
       
       system.handleEnemyCollision();
       
+      expect(mockPlayer.takeDamage).toHaveBeenCalledWith(OXYGEN_CONFIG.ENEMY_COLLISION_DAMAGE);
       const expectedOxygen = 50 - OXYGEN_CONFIG.ENEMY_COLLISION_DAMAGE;
       expect(mockPlayer.oxygen).toBe(expectedOxygen);
     });
@@ -259,15 +269,17 @@ describe('OxygenSystem', () => {
       
       system.handleEnemyCollision();
       
+      expect(mockPlayer.takeDamage).toHaveBeenCalledWith(OXYGEN_CONFIG.ENEMY_COLLISION_DAMAGE);
       expect(mockPlayer.oxygen).toBeGreaterThanOrEqual(0);
     });
 
     test('should trigger game over if collision depletes all oxygen', () => {
       const system = new OxygenSystem(mockScene, mockPlayer);
       mockPlayer.oxygen = 5;
-      mockPlayer.isAlive = jest.fn(() => false);
       
       system.handleEnemyCollision();
+      // After takeDamage, oxygen should be clamped to 0 or near 0
+      mockPlayer.isAlive = jest.fn(() => false);
       system.checkGameOver();
       
       expect(mockScene.events.emit).toHaveBeenCalledWith('game-over', expect.any(Object));
@@ -354,10 +366,11 @@ describe('OxygenSystem', () => {
 
     test('should handle zero delta time', () => {
       const system = new OxygenSystem(mockScene, mockPlayer);
+      const initialOxygen = mockPlayer.oxygen;
       
       system.update(0);
       
-      expect(mockPlayer.updateOxygen).toHaveBeenCalledWith(0);
+      expect(mockPlayer.oxygen).toBe(initialOxygen);
     });
 
     test('should handle negative multiplier gracefully', () => {

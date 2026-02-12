@@ -5,6 +5,7 @@
 
 import Enemy from './Enemy.js';
 import { ENEMY_CONFIG } from '../utils/Constants.js';
+import SpriteGenerator from '../utils/SpriteGenerator.js';
 
 export default class Eel extends Enemy {
   /**
@@ -17,7 +18,18 @@ export default class Eel extends Enemy {
    * @param {object} multipliers - Zone-based difficulty multipliers
    */
   constructor(scene, x, y, player, hidingPosition = null, multipliers = {}) {
-    super(scene, x, y, player, ENEMY_CONFIG.EEL.DETECTION_RADIUS);
+    // Generate sprites if they don't exist
+    if (!scene.textures.exists('eel-left-0')) {
+      SpriteGenerator.generateEelSprites(scene);
+    }
+    
+    super(scene, x, y, 'eel-left-0', player, ENEMY_CONFIG.EEL.DETECTION_RADIUS);
+    
+    // Animation properties
+    this.animationFrame = 0;
+    this.animationTimer = 0;
+    this.animationSpeed = 150; // ms per frame
+    this.currentDirection = 'left';
     
     // Apply zone multipliers
     const { speedMultiplier = 1.0, damageMultiplier = 1.0 } = multipliers;
@@ -167,6 +179,9 @@ export default class Eel extends Enemy {
   update(time, delta) {
     if (!this.isActive) return;
     
+    // Update animation and direction
+    this.updateAnimation(delta);
+    
     const currentTime = this.scene.time.now;
     
     // State machine transitions
@@ -175,11 +190,31 @@ export default class Eel extends Enemy {
         // Check for player detection
         if (this.canDetectPlayer()) {
           this.state = 'chasing';
+          this.chaseTimer = 0;
           this.acquireTarget();
         }
         break;
         
       case 'chasing':
+        // Update chase timer and check abandon conditions
+        this.chaseTimer += delta;
+        
+        if (this.shouldAbandonChase()) {
+          this.state = 'returning';
+          this.loseTarget();
+          this.chaseTimer = 0;
+          this.currentPath = null;
+          this.pathIndex = 0;
+          break;
+        }
+        
+        // Update pathfinding periodically
+        this.lastPathfindTime += delta;
+        if (this.lastPathfindTime >= this.pathfindingInterval) {
+          this.updatePathfinding();
+          this.lastPathfindTime = 0;
+        }
+        
         // Check if lost player
         if (!this.canDetectPlayer()) {
           this.state = 'returning';
@@ -217,5 +252,30 @@ export default class Eel extends Enemy {
     
     // Update visuals
     this.updateVisuals();
+  }
+  
+  /**
+   * Update sprite animation and direction
+   * @param {number} delta - Delta time in milliseconds
+   */
+  updateAnimation(delta) {
+    // Determine direction from velocity
+    const vx = this.body.velocity.x;
+    const vy = this.body.velocity.y;
+    
+    if (Math.abs(vx) > Math.abs(vy)) {
+      this.currentDirection = vx > 0 ? 'right' : 'left';
+    } else if (Math.abs(vy) > 10) {
+      this.currentDirection = vy > 0 ? 'down' : 'up';
+    }
+    
+    // Update animation frame
+    this.animationTimer += delta;
+    
+    if (this.animationTimer >= this.animationSpeed) {
+      this.animationTimer = 0;
+      this.animationFrame = (this.animationFrame + 1) % 2;
+      this.setTexture(`eel-${this.currentDirection}-${this.animationFrame}`);
+    }
   }
 }

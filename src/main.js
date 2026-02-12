@@ -37,6 +37,9 @@ const config = {
     mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
+  input: {
+    gamepad: true // Enable gamepad plugin
+  },
   render: {
     pixelArt: true, // Crisp pixel graphics
     antialias: false

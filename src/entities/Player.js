@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { PLAYER_CONFIG, OXYGEN_CONFIG, COLORS, COMBAT_CONFIG } from '../utils/Constants.js';
 import Harpoon from './Harpoon.js';
+import SpriteGenerator from '../utils/SpriteGenerator.js';
 
 /**
  * Player Entity
@@ -8,16 +9,27 @@ import Harpoon from './Harpoon.js';
  */
 export default class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, upgradeParams = {}) {
-    super(scene, x, y);
+    // Generate sprites if not already created
+    if (!scene.textures.exists('diver-idle-down')) {
+      SpriteGenerator.generateDiverSprites(scene);
+    }
+    
+    super(scene, x, y, 'diver-idle-down');
     
     this.scene = scene;
     scene.add.existing(this);
     scene.physics.add.existing(this);
     
-    // Visual representation (circle for now)
-    this.graphics = scene.add.graphics();
-    this.graphics.setPipeline('Light2D'); // Enable lighting
-    this.updateVisuals();
+    // Set up sprite properties
+    this.setOrigin(0.5, 0.5);
+    this.setPipeline('Light2D'); // Enable lighting
+    
+    // Animation state
+    this.currentDirection = 'down';
+    this.isMoving = false;
+    this.animationFrame = 0;
+    this.animationTimer = 0;
+    this.animationSpeed = 200; // ms per frame
     
     // Physics properties
     this.setCollideWorldBounds(true);
@@ -66,20 +78,33 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   
   /**
    * Handle player movement based on input
+   * @param {object} input - Input state with movement vector or direction booleans
    */
   handleMovement(input) {
     let velocityX = 0;
     let velocityY = 0;
     
-    if (input.left) velocityX -= 1;
-    if (input.right) velocityX += 1;
-    if (input.up) velocityY -= 1;
-    if (input.down) velocityY += 1;
+    // Support both movement vector (InputSystem) and boolean directions (old system)
+    if (input.movement) {
+      velocityX = input.movement.x;
+      velocityY = input.movement.y;
+    } else {
+      if (input.left) velocityX -= 1;
+      if (input.right) velocityX += 1;
+      if (input.up) velocityY -= 1;
+      if (input.down) velocityY += 1;
+    }
     
     // Track facing direction for harpoon
     if (velocityX !== 0 || velocityY !== 0) {
       this.facingX = velocityX;
       this.facingY = velocityY;
+      this.isMoving = true;
+      
+      // Update direction for animation
+      this.currentDirection = SpriteGenerator.getDirectionFromVelocity(velocityX, velocityY);
+    } else {
+      this.isMoving = false;
     }
     
     // Normalize diagonal movement
@@ -163,27 +188,46 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
   
   /**
-   * Update visual representation
+   * Update sprite animation
    */
-  updateVisuals() {
-    this.graphics.clear();
+  updateAnimation(deltaTime) {
+    // Update animation frame
+    if (this.isMoving) {
+      this.animationTimer += deltaTime;
+      if (this.animationTimer >= this.animationSpeed) {
+        this.animationFrame = (this.animationFrame + 1) % 2; // 2 frame animation
+        this.animationTimer = 0;
+        
+        // Update texture
+        const textureName = `diver-swim-${this.currentDirection}-${this.animationFrame}`;
+        if (this.scene.textures.exists(textureName)) {
+          this.setTexture(textureName);
+        }
+      }
+    } else {
+      // Idle texture
+      const textureName = `diver-idle-${this.currentDirection}`;
+      if (this.scene.textures.exists(textureName)) {
+        this.setTexture(textureName);
+      }
+      this.animationFrame = 0;
+      this.animationTimer = 0;
+    }
     
-    // Draw player circle
-    const alpha = this.isInvulnerable ? 0.5 : 1.0;
-    this.graphics.fillStyle(COLORS.PLAYER, alpha);
-    this.graphics.fillCircle(this.x, this.y, PLAYER_CONFIG.COLLISION_RADIUS);
+    // Apply invulnerability visual
+    if (this.isInvulnerable) {
+      this.setAlpha(0.5);
+    } else {
+      this.setAlpha(1.0);
+    }
   }
   
   /**
    * Update loop
    */
   update(time, delta) {
-    // Update graphics position
-    if (this.x !== this.lastX || this.y !== this.lastY) {
-      this.updateVisuals();
-      this.lastX = this.x;
-      this.lastY = this.y;
-    }
+    // Update animation
+    this.updateAnimation(delta);
   }
   
   /**
@@ -279,9 +323,6 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   destroy() {
     if (this.invulnerabilityTimer) {
       clearTimeout(this.invulnerabilityTimer);
-    }
-    if (this.graphics) {
-      this.graphics.destroy();
     }
     super.destroy();
   }
