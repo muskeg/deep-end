@@ -193,16 +193,16 @@
 
 ### Implementation for User Story 6
 
-- [ ] T088 [P] [US6] Create `src/systems/CavernGenerator.js` (if not existing) with generateWithLandmarks(width, height, landmarks) method
-- [ ] T089 [P] [US6] Update CavernGenerator to load landmarks.json and extract landmark region definitions
-- [ ] T090 [US6] In CavernGenerator, implement isInLandmark(x, y, landmarks) method to check if tile is within landmark bounds
-- [ ] T091 [US6] Update CavernGenerator cellular automata algorithm to use landmark-specific wall density when tile is in landmark region
-- [ ] T092 [US6] In CavernGenerator, use global wall density for non-landmark tiles (allows variation between runs)
-- [ ] T093 [US6] Update GameScene map generation to call CavernGenerator.generateWithLandmarks() instead of basic generate()
-- [ ] T094 [US6] Verify surface plateau region (X: 50-150 tiles, Y: 0-20 tiles) has low wall density (~10%) every run
-- [ ] T095 [US6] Verify deep trench region (X: 300-400 tiles, Y: 150-200 tiles) has high wall density (~50%) every run
-- [ ] T096 [US6] Update clam spawning to prefer landmark regions (use landmark bounds to guide spawn positions)
-- [ ] T097 [US6] Test map consistency: landmarks same position across multiple runs, wall details randomized
+- [x] T088 [P] [US6] Create `src/systems/CavernGenerator.js` (if not existing) with generateWithLandmarks(width, height, landmarks) method
+- [x] T089 [P] [US6] Update CavernGenerator to load landmarks.json and extract landmark region definitions
+- [x] T090 [US6] In CavernGenerator, implement isInLandmark(x, y, landmarks) method to check if tile is within landmark bounds
+- [x] T091 [US6] Update CavernGenerator cellular automata algorithm to use landmark-specific wall density when tile is in landmark region
+- [x] T092 [US6] In CavernGenerator, use global wall density for non-landmark tiles (allows variation between runs)
+- [x] T093 [US6] Update GameScene map generation to call CavernGenerator.generateWithLandmarks() instead of basic generate()
+- [x] T094 [US6] Verify surface plateau region (X: 50-150 tiles, Y: 0-20 tiles) has low wall density (~10%) every run
+- [x] T095 [US6] Verify deep trench region (X: 300-400 tiles, Y: 150-200 tiles) has high wall density (~50%) every run
+- [x] T096 [US6] Update clam spawning to prefer landmark regions (use landmark bounds to guide spawn positions)
+- [x] T097 [US6] Test map consistency: landmarks same position across multiple runs, wall details randomized
 
 **Checkpoint**: User Story 6 complete - Replayable map with recognizable landmarks and procedural variation
 

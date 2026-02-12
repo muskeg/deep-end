@@ -267,4 +267,157 @@ describe('CavernGenerator', () => {
       expect(openPositions.length).toBeGreaterThan(20);
     });
   });
+
+  describe('Landmark-Aware Generation', () => {
+    test('isInLandmark should detect tile inside a landmark region', () => {
+      const landmarks = [
+        { name: 'Test Zone', region: { minX: 10, maxX: 30, minY: 5, maxY: 20 }, wallDensity: 0.1 }
+      ];
+      const result = CavernGenerator.isInLandmark(15, 10, landmarks);
+      expect(result).not.toBeNull();
+      expect(result.name).toBe('Test Zone');
+    });
+
+    test('isInLandmark should return null for tile outside all landmarks', () => {
+      const landmarks = [
+        { name: 'Test Zone', region: { minX: 10, maxX: 30, minY: 5, maxY: 20 }, wallDensity: 0.1 }
+      ];
+      const result = CavernGenerator.isInLandmark(0, 0, landmarks);
+      expect(result).toBeNull();
+    });
+
+    test('isInLandmark should return null for null landmarks', () => {
+      expect(CavernGenerator.isInLandmark(10, 10, null)).toBeNull();
+    });
+
+    test('getDensityAt should return landmark density when inside a landmark', () => {
+      const gen = new CavernGenerator(50, 50, 0.40);
+      gen.landmarks = [
+        { name: 'Open Zone', region: { minX: 5, maxX: 20, minY: 0, maxY: 25 }, wallDensity: 0.10 }
+      ];
+      gen.chunkOffsetY = 0;
+      expect(gen.getDensityAt(10, 10)).toBe(0.10);
+    });
+
+    test('getDensityAt should return default density outside landmarks', () => {
+      const gen = new CavernGenerator(50, 50, 0.40);
+      gen.landmarks = [
+        { name: 'Open Zone', region: { minX: 5, maxX: 20, minY: 0, maxY: 25 }, wallDensity: 0.10 }
+      ];
+      gen.chunkOffsetY = 0;
+      expect(gen.getDensityAt(40, 40)).toBe(0.40);
+    });
+
+    test('generateWithLandmarks should produce a valid grid', () => {
+      const gen = new CavernGenerator(50, 50, 0.30);
+      const result = gen.generateWithLandmarks(50, 42, { chunkIndex: 0 });
+      expect(result.grid).toBeDefined();
+      expect(result.grid.length).toBe(50);
+      expect(result.openPositions).toBeDefined();
+      expect(result.landmarkPositions).toBeDefined();
+    });
+
+    test('generateWithLandmarks should use landmark densities in initial grid', () => {
+      // Create a generator shaped to overlap with a low-density landmark
+      const gen = new CavernGenerator(50, 50, 0.50);
+      gen.landmarks = [
+        { name: 'Open Area', region: { minX: 10, maxX: 40, minY: 10, maxY: 40 }, wallDensity: 0.05 }
+      ];
+      gen.chunkOffsetY = 0;
+      gen.setSeed(123);
+      gen.generateInitialGrid(0.50);
+      
+      // Count walls inside vs outside the landmark
+      const grid = gen.getGrid();
+      let insideWalls = 0, insideTotal = 0;
+      let outsideWalls = 0, outsideTotal = 0;
+      
+      for (let y = 2; y < 48; y++) {
+        for (let x = 1; x < 49; x++) {
+          const lm = CavernGenerator.isInLandmark(x, y, gen.landmarks);
+          if (lm) {
+            insideTotal++;
+            if (grid[y][x] === 1) insideWalls++;
+          } else {
+            outsideTotal++;
+            if (grid[y][x] === 1) outsideWalls++;
+          }
+        }
+      }
+      
+      const insideRatio = insideWalls / insideTotal;
+      const outsideRatio = outsideWalls / outsideTotal;
+      
+      // Landmark region (5% density) should have significantly fewer walls
+      expect(insideRatio).toBeLessThan(outsideRatio);
+    });
+
+    test('getLandmarks should return landmark array from data file', () => {
+      const landmarks = CavernGenerator.getLandmarks();
+      expect(Array.isArray(landmarks)).toBe(true);
+      expect(landmarks.length).toBeGreaterThan(0);
+      expect(landmarks[0]).toHaveProperty('name');
+      expect(landmarks[0]).toHaveProperty('region');
+      expect(landmarks[0]).toHaveProperty('wallDensity');
+    });
+
+    test('getOpenPositionsInLandmarks should return positions within landmark regions', () => {
+      const gen = new CavernGenerator(50, 50, 0.30);
+      gen.landmarks = [
+        { name: 'Test', region: { minX: 10, maxX: 40, minY: 10, maxY: 40 }, wallDensity: 0.10 }
+      ];
+      gen.chunkOffsetY = 0;
+      gen.setSeed(42);
+      gen.generateInitialGrid(0.30);
+      gen.smoothGrid();
+      
+      const landmarkPositions = gen.getOpenPositionsInLandmarks();
+      expect(Array.isArray(landmarkPositions)).toBe(true);
+      
+      // All returned positions should be inside the landmark
+      landmarkPositions.forEach(pos => {
+        expect(pos.x).toBeGreaterThanOrEqual(10);
+        expect(pos.x).toBeLessThanOrEqual(40);
+        expect(pos.y + gen.chunkOffsetY).toBeGreaterThanOrEqual(10);
+        expect(pos.y + gen.chunkOffsetY).toBeLessThanOrEqual(40);
+        expect(pos.landmark).toBe('Test');
+      });
+    });
+
+    test('smoothGrid should use adjusted thresholds in landmark regions', () => {
+      // Low-density landmark should stay open after smoothing
+      const gen = new CavernGenerator(50, 50, 0.50);
+      gen.landmarks = [
+        { name: 'Open Zone', region: { minX: 10, maxX: 40, minY: 10, maxY: 40 }, wallDensity: 0.10 }
+      ];
+      gen.chunkOffsetY = 0;
+      gen.setSeed(99);
+      gen.generateInitialGrid(0.50);
+      gen.smoothGrid();
+      
+      const grid = gen.getGrid();
+      let insideWalls = 0, insideTotal = 0;
+      
+      for (let y = 15; y < 35; y++) {
+        for (let x = 15; x < 35; x++) {
+          insideTotal++;
+          if (grid[y][x] === 1) insideWalls++;
+        }
+      }
+      
+      const insideRatio = insideWalls / insideTotal;
+      // After smoothing with raised birth threshold, landmark interior should be mostly open
+      expect(insideRatio).toBeLessThan(0.40);
+    });
+
+    test('map consistency: same seed produces identical landmark patterns', () => {
+      const gen1 = new CavernGenerator(50, 50, 0.30);
+      const gen2 = new CavernGenerator(50, 50, 0.30);
+      
+      const result1 = gen1.generateWithLandmarks(50, 777, { chunkIndex: 0 });
+      const result2 = gen2.generateWithLandmarks(50, 777, { chunkIndex: 0 });
+      
+      expect(JSON.stringify(result1.grid)).toBe(JSON.stringify(result2.grid));
+    });
+  });
 });

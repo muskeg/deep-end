@@ -1,8 +1,10 @@
 import { CAVERN_CONFIG } from '../utils/Constants.js';
+import landmarkData from '../data/landmarks.json';
 
 /**
  * CavernGenerator
  * Procedural cave generation using Cellular Automata algorithm
+ * Supports landmark regions with fixed wall densities for recognizable geography.
  * Ensures connectivity and sufficient open space for gameplay
  */
 export default class CavernGenerator {
@@ -10,6 +12,8 @@ export default class CavernGenerator {
     this.width = width;
     this.height = height;
     this.initialDensity = density;
+    this.landmarks = null; // Landmark definitions for this chunk
+    this.chunkOffsetY = 0;  // Y tile offset for this chunk in world coordinates
     this.rng = null; // Seeded random number generator
     
     // Initialize empty grid with correct dimensions
@@ -79,8 +83,9 @@ export default class CavernGenerator {
         else if (y === this.height - 1 && hasBottom) {
           this.grid[y][x] = 1;
         } else {
-          // Random wall based on density
-          this.grid[y][x] = this.random() < density ? 1 : 0;
+          // Random wall based on density (landmark-aware if landmarks are set)
+          const tileDensity = this.getDensityAt(x, y, density);
+          this.grid[y][x] = this.random() < tileDensity ? 1 : 0;
         }
       }
     }
@@ -157,10 +162,27 @@ export default class CavernGenerator {
           
           const neighbors = this.countWallNeighbors(x, y);
           
-          // Apply cellular automata rules
-          if (neighbors >= CAVERN_CONFIG.BIRTH_THRESHOLD) {
+          // Apply cellular automata rules (landmark-aware thresholds)
+          let birthThreshold = CAVERN_CONFIG.BIRTH_THRESHOLD;
+          let deathThreshold = CAVERN_CONFIG.DEATH_THRESHOLD;
+          
+          const lm = this.landmarks ? CavernGenerator.isInLandmark(x, y + this.chunkOffsetY, this.landmarks) : null;
+          if (lm) {
+            // Shift thresholds to bias toward the landmark's target density.
+            // Low density landmarks → harder to birth walls (raise threshold)
+            // High density landmarks → harder to kill walls (raise death threshold)
+            if (lm.wallDensity < 0.2) {
+              birthThreshold = 6; // Walls need 6+ neighbors to form (very open)
+              deathThreshold = 4; // Walls die with fewer than 4 neighbors
+            } else if (lm.wallDensity >= 0.4) {
+              birthThreshold = 4; // Walls form more easily
+              deathThreshold = 2; // Walls survive with fewer neighbors
+            }
+          }
+          
+          if (neighbors >= birthThreshold) {
             newGrid[y][x] = 1; // Birth - become wall
-          } else if (neighbors < CAVERN_CONFIG.DEATH_THRESHOLD) {
+          } else if (neighbors < deathThreshold) {
             newGrid[y][x] = 0; // Death - become open
           } else {
             newGrid[y][x] = this.grid[y][x]; // Stay same
@@ -250,6 +272,57 @@ export default class CavernGenerator {
   }
 
   /**
+   * Check if a tile position (in absolute world tile coords) falls inside a landmark region.
+   * @param {number} x - Tile X coordinate (grid-local)
+   * @param {number} y - Tile Y coordinate (grid-local, will be offset by chunkOffsetY)
+   * @param {Array} landmarks - Array of landmark definitions from landmarks.json
+   * @returns {Object|null} Matching landmark or null
+   */
+  static isInLandmark(x, y, landmarks) {
+    if (!landmarks) return null;
+    for (const lm of landmarks) {
+      const r = lm.region;
+      if (x >= r.minX && x <= r.maxX && y >= r.minY && y <= r.maxY) {
+        return lm;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Get the wall density for a given tile position, accounting for landmarks.
+   * Returns the landmark's wallDensity if the tile is inside one, otherwise the base density.
+   * @param {number} localX - Grid-local X
+   * @param {number} localY - Grid-local Y
+   * @param {number} [baseDensity] - Override base density (defaults to this.initialDensity)
+   * @returns {number} Wall density (0-1)
+   */
+  getDensityAt(localX, localY, baseDensity) {
+    const fallback = baseDensity !== undefined ? baseDensity : this.initialDensity;
+    if (!this.landmarks) return fallback;
+    const worldY = localY + this.chunkOffsetY;
+    const lm = CavernGenerator.isInLandmark(localX, worldY, this.landmarks);
+    return lm ? lm.wallDensity : fallback;
+  }
+
+  /**
+   * Generate complete cavern with landmark-aware wall densities.
+   * Landmark regions get their own wall density; non-landmark areas use the global density.
+   * @param {number} maxAttempts - Maximum generation attempts
+   * @param {number} seed - Optional seed for deterministic generation
+   * @param {Object} options - Generation options
+   * @param {number} options.chunkIndex - Which chunk (used to compute Y offset for landmarks)
+   * @returns {{grid: number[][], openPositions: Array<{x: number, y: number}>}}
+   */
+  generateWithLandmarks(maxAttempts = 50, seed = null, options = {}) {
+    // Load landmarks from data file
+    this.landmarks = landmarkData.landmarks || [];
+    this.chunkOffsetY = (options.chunkIndex || 0) * this.height;
+
+    return this.generate(maxAttempts, seed, options);
+  }
+
+  /**
    * Generate complete cavern with validation
    * Retries until valid cavern is created
    * @param {number} maxAttempts - Maximum generation attempts
@@ -269,7 +342,8 @@ export default class CavernGenerator {
       if (this.isConnected() && this.validateOpenSpace()) {
         return {
           grid: this.grid,
-          openPositions: this.getOpenPositions()
+          openPositions: this.getOpenPositions(),
+          landmarkPositions: this.getOpenPositionsInLandmarks()
         };
       }
       
@@ -283,7 +357,8 @@ export default class CavernGenerator {
     console.warn(`CavernGenerator: Failed to generate valid cavern after ${maxAttempts} attempts`);
     return {
       grid: this.grid,
-      openPositions: this.getOpenPositions()
+      openPositions: this.getOpenPositions(),
+      landmarkPositions: this.getOpenPositionsInLandmarks()
     };
   }
 
@@ -311,5 +386,35 @@ export default class CavernGenerator {
    */
   getGrid() {
     return this.grid;
+  }
+
+  /**
+   * Get open positions that fall within any landmark region.
+   * Used by GameScene to prefer spawning clams inside landmarks.
+   * @returns {Array<{x: number, y: number, landmark: string}>} Open positions in landmarks
+   */
+  getOpenPositionsInLandmarks() {
+    if (!this.landmarks || this.landmarks.length === 0) return [];
+    const positions = [];
+    for (let y = 1; y < this.height - 1; y++) {
+      for (let x = 1; x < this.width - 1; x++) {
+        if (this.grid[y][x] === 0) {
+          const worldY = y + this.chunkOffsetY;
+          const lm = CavernGenerator.isInLandmark(x, worldY, this.landmarks);
+          if (lm) {
+            positions.push({ x, y, landmark: lm.name });
+          }
+        }
+      }
+    }
+    return positions;
+  }
+
+  /**
+   * Get all landmark definitions from the data file.
+   * @returns {Array} Landmark definitions
+   */
+  static getLandmarks() {
+    return landmarkData.landmarks || [];
   }
 }

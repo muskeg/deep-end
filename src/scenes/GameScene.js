@@ -376,16 +376,18 @@ export default class GameScene extends Phaser.Scene {
       topOverlapRow = prevChunkData.lastRow;
     }
     
-    // Generate cavern chunk with consistent seed
+    // Generate cavern chunk with landmark-aware wall densities
     const generator = new CavernGenerator(gridWidth, chunkHeightTiles, 0.30);
-    const result = generator.generate(10, this.worldSeed + chunkIndex * 1000, {
+    const result = generator.generateWithLandmarks(10, this.worldSeed + chunkIndex * 1000, {
       hasSurface: isFirstChunk,
       hasBottom: false, // Never force solid bottom — chunks must connect
-      topOverlapRow: topOverlapRow
+      topOverlapRow: topOverlapRow,
+      chunkIndex: chunkIndex
     });
     
     const grid = result.grid;
     const openPositions = result.openPositions;
+    const landmarkPositions = result.landmarkPositions || [];
     
     // Store wall positions (not objects yet)
     const wallPositions = [];
@@ -405,7 +407,8 @@ export default class GameScene extends Phaser.Scene {
     const chunkData = { 
       wallPositions, 
       lastRow, 
-      openPositions,  // Add open positions for spawning
+      openPositions,  // Open positions for spawning
+      landmarkPositions, // Open positions within landmark regions (preferred for clams)
       generated: true,
       spawned: false  // Track if enemies already spawned
     };
@@ -443,7 +446,70 @@ export default class GameScene extends Phaser.Scene {
     // Spawn enemies if this chunk hasn't been spawned yet
     if (!chunkData.spawned && this.enemySpawnManager) {
       this.enemySpawnManager.onChunkLoaded(chunkIndex, chunkData);
+      
+      // Spawn clams in this chunk (prefer landmark positions)
+      this.spawnClamsInChunk(chunkIndex, chunkData);
+      
       chunkData.spawned = true;
+    }
+  }
+  
+  /**
+   * Spawn clams within a chunk, preferring landmark regions.
+   * @param {number} chunkIndex - Chunk index
+   * @param {Object} chunkData - Chunk data with openPositions and landmarkPositions
+   */
+  spawnClamsInChunk(chunkIndex, chunkData) {
+    const tileSize = GAME_CONFIG.TILE_SIZE;
+    const chunkHeightTiles = Math.floor(this.chunkSize / tileSize);
+    const surfaceGridY = Math.floor(this.surfaceOffset / tileSize);
+    const chunkStartTileY = chunkIndex * chunkHeightTiles;
+    
+    // Filter positions to only those below the surface
+    const filterBelowSurface = (positions) =>
+      positions.filter(pos => (pos.y + chunkStartTileY) > surfaceGridY);
+    
+    const landmarkPos = filterBelowSurface(chunkData.landmarkPositions || []);
+    const openPos = filterBelowSurface(chunkData.openPositions || []);
+    
+    if (openPos.length === 0) return;
+    
+    // Determine clam count: 1-3 per chunk, more in landmark-rich chunks
+    const baseClamCount = landmarkPos.length > 10 ? 3 : 2;
+    const clamCount = Math.min(baseClamCount, openPos.length);
+    
+    // Build spawn pool: 70% from landmark positions, 30% from general positions
+    let spawnPool;
+    if (landmarkPos.length >= clamCount) {
+      // Enough landmark positions — use them preferentially
+      const shuffledLandmark = landmarkPos.sort(() => Math.random() - 0.5);
+      const shuffledOpen = openPos.sort(() => Math.random() - 0.5);
+      // Take from landmarks first, fill remainder from open
+      spawnPool = [...shuffledLandmark.slice(0, clamCount)];
+      if (spawnPool.length < clamCount) {
+        spawnPool.push(...shuffledOpen.slice(0, clamCount - spawnPool.length));
+      }
+    } else {
+      // Not enough landmark positions — use whatever's available
+      const shuffled = openPos.sort(() => Math.random() - 0.5);
+      spawnPool = shuffled.slice(0, clamCount);
+    }
+    
+    // Spawn clams at chosen positions
+    const worldTileY = (localY) => (localY + chunkStartTileY);
+    for (const pos of spawnPool) {
+      const worldY = worldTileY(pos.y) * tileSize + tileSize / 2;
+      const currentZone = this.depthZoneSystem.getCurrentZone(Math.max(0, worldY - this.surfaceOffset));
+      const pearlValue = this.depthZoneSystem.getPearlValue(currentZone);
+      
+      const clam = new Clam(
+        this,
+        pos.x * tileSize + tileSize / 2,
+        worldY,
+        true,
+        pearlValue
+      );
+      this.clams.push(clam);
     }
   }
   
