@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import ProgressionSystem from '../systems/ProgressionSystem.js';
 import UpgradeSystem from '../systems/UpgradeSystem.js';
 import ShopMenu from '../ui/ShopMenu.js';
-import { SCENES, COLORS } from '../utils/Constants.js';
+import AudioManager from '../utils/AudioManager.js';
+import { SCENES, COLORS, UI_CONFIG } from '../utils/Constants.js';
 
 /**
  * ShopScene
@@ -19,6 +20,10 @@ export default class ShopScene extends Phaser.Scene {
     // Initialize systems
     this.progressionSystem = new ProgressionSystem();
     this.upgradeSystem = new UpgradeSystem(this.progressionSystem);
+    
+    // Initialize audio
+    this.audioManager = new AudioManager(this);
+    this.audioManager.initialize();
     
     // Create background
     this.createBackground();
@@ -71,11 +76,9 @@ export default class ShopScene extends Phaser.Scene {
       40,
       'Surface Shop',
       {
-        fontSize: '48px',
-        fontFamily: 'Arial',
-        color: '#ffffff',
-        fontStyle: 'bold',
-        stroke: '#000000',
+        font: UI_CONFIG.FONT.TITLE,
+        fill: UI_CONFIG.COLORS.TEXT_PRIMARY,
+        stroke: UI_CONFIG.COLORS.STROKE,
         strokeThickness: 6
       }
     ).setOrigin(0.5);
@@ -101,10 +104,8 @@ export default class ShopScene extends Phaser.Scene {
       buttonY,
       'Start Dive',
       {
-        fontSize: '28px',
-        fontFamily: 'Arial',
-        color: '#ffffff',
-        fontStyle: 'bold'
+        font: UI_CONFIG.FONT.LARGE,
+        fill: UI_CONFIG.COLORS.TEXT_PRIMARY
       }
     ).setOrigin(0.5);
     
@@ -129,20 +130,35 @@ export default class ShopScene extends Phaser.Scene {
   createStatisticsDisplay() {
     const stats = this.progressionSystem.getStatistics();
     const x = 20;
-    const y = this.scale.height - 150;
-    
+    const y = this.scale.height - 200;
+
+    // Format play time
+    const totalMinutes = Math.floor((stats.totalPlayTime || 0) / 60);
+    const totalSecs = (stats.totalPlayTime || 0) % 60;
+    const longestMin = Math.floor((stats.longestDive || 0) / 60);
+    const longestSec = (stats.longestDive || 0) % 60;
+
+    // Header
+    this.add.text(x, y, '── Statistics ──', {
+      font: UI_CONFIG.FONT.MEDIUM,
+      fill: UI_CONFIG.COLORS.TEXT_ACCENT
+    });
+
     const statsText = [
-      `Total Pearls Collected: ${stats.totalPearlsCollected}`,
-      `Enemies Killed: ${stats.enemiesKilled}`,
-      `Deepest Depth: ${Math.floor(stats.deepestDepthReached)}m`,
-      `Total Dives: ${stats.totalDives}`
+      `Pearls Collected: ${stats.totalPearlsCollected}`,
+      `Enemies Killed:   ${stats.enemiesKilled}`,
+      `Deepest Depth:    ${Math.floor(stats.deepestDepthReached)}m`,
+      `Total Dives:      ${stats.totalDives}`,
+      `Deaths:           ${stats.totalDeaths || 0}`,
+      `Upgrades Bought:  ${stats.upgradesPurchased || 0}`,
+      `Total Play Time:  ${totalMinutes}m ${totalSecs}s`,
+      `Longest Dive:     ${longestMin}m ${longestSec}s`
     ].join('\n');
-    
-    this.add.text(x, y, statsText, {
-      fontSize: '16px',
-      fontFamily: 'Arial',
-      color: '#cccccc',
-      lineSpacing: 5
+
+    this.add.text(x, y + 28, statsText, {
+      font: UI_CONFIG.FONT.SMALL,
+      fill: UI_CONFIG.COLORS.TEXT_SECONDARY,
+      lineSpacing: 4
     });
   }
 
@@ -157,7 +173,9 @@ export default class ShopScene extends Phaser.Scene {
       console.log(`[ShopScene] Purchased ${upgradeType} upgrade`);
       
       // Play purchase sound
-      // TODO: this.sound.play('purchase');
+      if (this.audioManager) {
+        this.audioManager.playUpgradePurchase();
+      }
       
       // Refresh menu to show updated costs and balance
       this.shopMenu.refresh((type) => this.onUpgradeClick(type));
@@ -210,11 +228,9 @@ export default class ShopScene extends Phaser.Scene {
       this.scale.height / 2,
       `${upgradeType.toUpperCase()} UPGRADED!`,
       {
-        fontSize: '36px',
-        fontFamily: 'Arial',
-        color: '#00ff00',
-        fontStyle: 'bold',
-        stroke: '#000000',
+        font: UI_CONFIG.FONT.HEADER,
+        fill: UI_CONFIG.COLORS.TEXT_SUCCESS,
+        stroke: UI_CONFIG.COLORS.STROKE,
         strokeThickness: 6
       }
     ).setOrigin(0.5).setAlpha(0);
@@ -241,11 +257,9 @@ export default class ShopScene extends Phaser.Scene {
       this.scale.height / 2,
       'INSUFFICIENT PEARLS',
       {
-        fontSize: '32px',
-        fontFamily: 'Arial',
-        color: '#ff0000',
-        fontStyle: 'bold',
-        stroke: '#000000',
+        font: UI_CONFIG.FONT.HEADER,
+        fill: UI_CONFIG.COLORS.TEXT_DANGER,
+        stroke: UI_CONFIG.COLORS.STROKE,
         strokeThickness: 6
       }
     ).setOrigin(0.5).setAlpha(0);

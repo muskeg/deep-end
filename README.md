@@ -1,19 +1,21 @@
 # 🌊 Deep End
 
-A vibe coded action arcade browser game where you navigate procedurally generated underwater caverns, collect pearls from clams, and manage your oxygen supply before time runs out.
+A roguelike underwater diving game where you explore procedurally generated caverns, battle sea creatures, collect pearls, and buy permanent upgrades between dives. Built with Phaser 3 and vanilla JavaScript.
 
 **🎮 [Play Now on GitHub Pages](https://muskeg.github.io/deep-end/)**
 
 ## 🎮 Features
 
-- **Intuitive Controls**: Arrow keys or WASD for movement, Spacebar to interact
-- **Procedural Generation**: Unique cavern layouts using Cellular Automata algorithm
-- **Progressive Difficulty**: Increasing challenge with more enemies, hazards, and faster oxygen depletion
-- **Environmental Hazards**: Water currents and narrow passages that affect movement
-- **Hostile Creatures**: Jellyfish and eels with patrol and chase AI behaviors
-- **Sound Effects**: Procedurally generated audio for pearls, enemies, and events
-- **High Score Tracking**: LocalStorage persistence of your best level reached
-- **Performance Optimized**: 60 FPS target with WebGL rendering via Phaser.js
+- **Roguelike Dive Loop**: Dive, collect pearls, return to shop, upgrade, dive deeper
+- **Procedural Caverns**: Cellular automata generation with landmark-aware density regions
+- **Combat System**: Fire harpoons (Q) and dash (Shift) to fight enemies
+- **Depth Zones**: Sunlight → Twilight → Midnight with dynamic ambient lighting
+- **Persistent Upgrades**: Oxygen, light, speed, harpoon damage, dash cooldown, sonar
+- **Enemy AI**: Jellyfish patrol patterns, eel chase/lunge behavior, zone-scaled spawning
+- **Sprite-Based Graphics**: Procedurally generated pixel art for all entities
+- **Procedural Audio**: Web Audio API sound effects and zone-specific ambient music
+- **Statistics Tracking**: Pearls collected, enemies killed, deepest depth, play time
+- **First-Run Tutorial**: Control overlay shown on first dive
 
 ## 🚀 Quick Start
 
@@ -24,14 +26,11 @@ A vibe coded action arcade browser game where you navigate procedurally generate
 ### Installation
 
 ```bash
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-Open your browser to `http://localhost:5173`
+Open `http://localhost:5173`
 
 ### Build for Production
 
@@ -44,66 +43,45 @@ npm run preview
 
 ### Controls
 
-**Movement:**
-- **Arrow Keys** or **WASD**: Move your diver in any direction
+| Key | Action |
+|-----|--------|
+| **WASD / Arrows** | Move diver |
+| **Q** | Fire harpoon |
+| **Shift** | Dash (speed burst with cooldown) |
+| **Space** | Interact with clams |
+| **ESC** | Surface voluntarily (end dive, keep pearls) |
+| **P** | Pause |
+| **M** | Toggle audio |
+| **F** | Toggle FPS counter |
 
-**Actions:**
-- **Spacebar**: Interact with clams to collect pearls
-- **ESC**: Pause/Resume game
-- **F**: Toggle FPS counter (debug mode)
-- **M**: Toggle audio mute/unmute
+### Gameplay Loop
 
-### Objective
+1. **Start at the Surface Shop** — view upgrades and stats
+2. **Dive** into procedurally generated underwater caverns
+3. **Explore** — swim through zones that get darker and more dangerous with depth
+4. **Collect pearls** from clams scattered throughout the cavern
+5. **Fight or flee** — harpoon jellyfish and eels, or dash past them
+6. **Manage oxygen** — it depletes over time; enemies drain it on contact
+7. **Surface** (ESC) when ready — keep your pearls
+8. **Upgrade** at the shop — improve oxygen, light, speed, weapons
+9. **Dive deeper** next time with better equipment
 
-1. Navigate through procedurally generated underwater caverns
-2. Collect all pearls from clams to complete the level
-3. Manage your oxygen supply (depletes over time)
-4. Avoid hostile sea creatures (jellyfish and eels)
-5. Complete levels to progress to harder challenges with increased difficulty
+### Depth Zones
 
-### Gameplay Tips
+- **Sunlight Zone** (0–500m): Bright, calm waters. Low enemy density.
+- **Twilight Zone** (500–1500m): Dimmer lighting, more enemies, clams worth 5× pearls.
+- **Midnight Zone** (1500m+): Near darkness, aggressive fauna, clams worth 20× pearls.
 
-- **Watch your oxygen meter**: It depletes constantly, and collisions with enemies reduce it by 10%
-- **Plan your route**: Collect pearls efficiently to minimize oxygen depletion
-- **Avoid enemies**: Jellyfish patrol in patterns, eels chase you when nearby
-- **Use water currents**: Green currents push you around - use them strategically or avoid them
-- **Pace yourself**: Higher levels have more enemies, faster oxygen depletion, and denser caverns
-- **Learn from failure**: Each level is procedurally generated but follows predictable difficulty curves
+### Upgrades
 
-### Difficulty Progression
-
-The game gets progressively harder with each level:
-
-**Levels 1-5 (Early Game):**
-- 3-5 clams per level
-- 2-4 water currents
-- 1-2 jellyfish
-- No eels
-- Oxygen depletion: 1.0x rate
-
-**Levels 6-10 (Mid Game):**
-- 5-7 clams per level
-- 4-6 water currents
-- 2-3 jellyfish
-- 1 eel appears
-- Oxygen depletion: ~1.3x rate
-- Caverns become denser
-
-**Levels 11-20 (Late Game):**
-- 7-10 clams per level (capped at 10)
-- 6-8 water currents (capped at 8)
-- 3-5 jellyfish (capped at 5)
-- 1-3 eels (capped at 3)
-- Oxygen depletion: up to 2.5x rate (capped)
-- Caverns reach maximum density
-
-**Scaling Details:**
-- Clams: +1 every 2 levels (max 10)
-- Currents: +1 every 3 levels (max 8)
-- Jellyfish: +1 every 4 levels (max 5)
-- Eels: Start at level 2, +1 every 5 levels (max 3)
-- Oxygen rate: Logarithmic curve, reaches 2.5x at level ~20
-- Cavern complexity: Density increases 0.01 every 5 levels (0.40→0.55)
+| Upgrade | Effect |
+|---------|--------|
+| Oxygen Tank | Increases max oxygen capacity |
+| Light | Expands visible radius in deeper zones |
+| Speed | Increases swim speed |
+| Harpoon | Boosts harpoon damage |
+| Dash | Reduces dash cooldown |
+| Sonar | Increases detection range for clams/enemies |
 
 ## 🧪 Testing
 
@@ -111,117 +89,66 @@ The game gets progressively harder with each level:
 # Run unit tests
 npm test
 
-# Watch mode for TDD
+# Watch mode
 npm run test:watch
 
-# Coverage report
+# Coverage
 npm run test:coverage
 
-# Integration tests (E2E)
+# E2E tests (Playwright)
 npm run test:integration
-
-# Integration tests with UI
-npm run test:integration:ui
 ```
+
+**Test coverage**: 360 tests across unit, integration, and performance suites.
 
 ## 📁 Project Structure
 
 ```
 src/
 ├── main.js              # Game initialization
+├── data/                # JSON configs (zones, upgrades, landmarks)
 ├── scenes/              # Phaser scenes
-│   ├── BootScene.js     # Asset loading
-│   ├── MenuScene.js     # Start menu
+│   ├── BootScene.js     # Asset loading with progress bar
+│   ├── MenuScene.js     # Start menu (new game / continue)
+│   ├── ShopScene.js     # Upgrade shop + statistics
 │   ├── GameScene.js     # Main gameplay
-│   └── GameOverScene.js # End game
-├── entities/            # Game objects (Player, Enemy, Clam, etc.)
-├── systems/             # Game logic (CavernGenerator, Collision, Oxygen)
-├── utils/               # Helpers and constants
-└── ui/                  # HUD components
-
-tests/
-├── unit/                # Jest unit tests
-├── integration/         # Playwright E2E tests
-├── fixtures/            # Test data
-└── helpers/             # Test utilities
+│   └── GameOverScene.js # End-of-dive screen
+├── entities/            # Game objects
+│   ├── Player.js        # Diver with 8-direction movement, dash, harpoon
+│   ├── Clam.js          # Pearl-dropping clam with gravity settling
+│   ├── Jellyfish.js     # Patrol + chase AI
+│   ├── Eel.js           # Aggressive lunge AI
+│   └── ...
+├── systems/             # Game logic
+│   ├── CavernGenerator.js    # Cellular automata + landmarks
+│   ├── CombatSystem.js       # Damage, kills, effects
+│   ├── DepthZoneSystem.js    # Zone transitions + lighting
+│   ├── EnemySpawnManager.js  # Zone-scaled enemy spawning
+│   ├── OxygenSystem.js       # O2 depletion + warnings
+│   ├── ProgressionSystem.js  # Pearls, upgrades, stats (LocalStorage)
+│   └── ...
+├── ui/                  # HUD components
+│   ├── DepthMeter.js    # Depth + zone display
+│   ├── OxygenMeter.js   # O2 bar with color warnings
+│   ├── DashCooldown.js  # Dash ready/cooldown indicator
+│   └── ...
+└── utils/               # AudioManager, Constants, LocalStorage
 ```
 
 ## 🛠️ Tech Stack
 
-- **Game Framework**: [Phaser.js 3.80+](https://phaser.io/)
-- **Build Tool**: [Vite](https://vitejs.dev/)
-- **Unit Testing**: [Jest](https://jestjs.io/)
-- **E2E Testing**: [Playwright](https://playwright.dev/)
+- **Game Engine**: [Phaser 3.80+](https://phaser.io/) with Light2D pipeline
+- **Build**: [Vite](https://vitejs.dev/)
+- **Unit Tests**: [Jest](https://jestjs.io/)
+- **E2E Tests**: [Playwright](https://playwright.dev/)
+- **Audio**: Web Audio API (procedural)
+- **Sprites**: Node Canvas (procedural generation)
 - **Language**: JavaScript ES6+
-
-## 📊 Game Features by Phase
-
-### Phase 1: MVP (User Story 1) ✅
-- Player movement and controls (WASD/Arrow keys)
-- Pearl collection from clams (Spacebar interaction)
-- Oxygen management system
-- Game over and level completion
-- HUD with oxygen meter and score display
-
-### Phase 2: Environmental Hazards (User Story 2) ✅
-- Water currents affecting player movement
-- Terrain-based oxygen penalties
-- Improved collision physics
-- Environmental interaction systems
-
-### Phase 3: Hostile Creatures (User Story 3) ✅
-- Jellyfish with patrol AI patterns
-- Eels with chase behavior and aggro radius
-- Enemy collision damage (10% oxygen reduction)
-- Enemy state management
-
-### Phase 4: Procedural Generation (User Story 4) ✅
-- Cellular Automata level generation
-- Progressive difficulty scaling with caps
-- Infinite level progression
-- Difficulty system with logarithmic oxygen scaling
-- Cavern complexity scaling
-
-### Phase 7: Polish & Optimization ✅
-- Pause functionality (ESC key)
-- FPS counter (F key toggle)
-- LocalStorage high score tracking
-- Performance optimizations
-- Enhanced UI/UX polish
-
-## 🎨 Assets
-
-Game uses procedurally generated graphics and placeholder sprites during development. Custom sprites and audio can be added to the `assets/` directory.
-
-## 📝 Development
-
-This project follows Test-Driven Development (TDD) principles:
-
-1. Write failing tests for acceptance criteria
-2. Implement minimum code to pass tests
-3. Refactor while keeping tests green
-4. Repeat for next feature
-
-See [specs/001-underwater-cavern-game/](specs/001-underwater-cavern-game/) for detailed specification, technical plan, and task breakdown.
-
-## 🐛 Known Issues
-
-- None currently
-
-## 🤝 Contributing
-
-This is a learning/demo project. Feel free to fork and experiment!
 
 ## 📜 License
 
 MIT
 
-## 🎓 Learn More
-
-- [Phaser Documentation](https://photonstorm.github.io/phaser3-docs/)
-- [Cellular Automata for Game Development](https://www.roguebasin.com/index.php/Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels)
-- [Game Design Patterns](https://gameprogrammingpatterns.com/)
-
 ---
 
-Built with ❤️ using Phaser.js and modern web technologies
+Built with Phaser.js | Procedurally generated everything

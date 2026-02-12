@@ -23,7 +23,10 @@ export default class ProgressionSystem extends LocalStorageManager {
       enemiesKilled: 0,
       deepestDepthReached: 0,
       totalDives: 0,
-      totalDeaths: 0
+      totalDeaths: 0,
+      totalPlayTime: 0,       // seconds
+      longestDive: 0,          // seconds
+      upgradesPurchased: 0
     };
 
     // Initialize upgrade levels to 0
@@ -121,6 +124,7 @@ export default class ProgressionSystem extends LocalStorageManager {
     // Deduct cost and increase level
     this.pearls -= cost;
     this.upgrades[upgradeType] = currentLevel + 1;
+    this.statistics.upgradesPurchased++;
     this.saveProgress();
 
     console.log(`[Progression] Purchased ${upgradeType} level ${this.upgrades[upgradeType]} for ${cost} pearls`);
@@ -219,7 +223,10 @@ export default class ProgressionSystem extends LocalStorageManager {
       enemiesKilled: 0,
       deepestDepthReached: 0,
       totalDives: 0,
-      totalDeaths: 0
+      totalDeaths: 0,
+      totalPlayTime: 0,
+      longestDive: 0,
+      upgradesPurchased: 0
     };
 
     this.clear();

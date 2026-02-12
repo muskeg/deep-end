@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SCENES, COLORS, GAME_CONFIG } from '../utils/Constants.js';
+import { SCENES, COLORS, GAME_CONFIG, UI_CONFIG } from '../utils/Constants.js';
 import Player from '../entities/Player.js';
 import Clam from '../entities/Clam.js';
 import Wall from '../entities/Wall.js';
@@ -41,6 +41,7 @@ export default class GameScene extends Phaser.Scene {
     this.currentScore = data.score || 0;
     this.gameOver = false;
     this.isPaused = false;
+    this.diveStartTime = Date.now();
     
     // Upgrade parameters from ShopScene
     this.upgradeParams = data.upgradeParams || {
@@ -262,6 +263,9 @@ export default class GameScene extends Phaser.Scene {
     
     // Handle window resize
     this.scale.on('resize', this.resize, this);
+
+    // Show tutorial on first run
+    this.showTutorialIfFirstRun();
   }
 
   /**
@@ -849,14 +853,18 @@ export default class GameScene extends Phaser.Scene {
       // Visual flash effect
       this.cameras.main.flash(500, newZone.ambientColor >> 16 & 0xff, newZone.ambientColor >> 8 & 0xff, newZone.ambientColor & 0xff);
       
-      // Audio cue (placeholder - would need actual sound)
-      // this.audioManager.playZoneTransition();
+      // Audio cue for zone transition
+      this.audioManager.playZoneTransition();
+      this.audioManager.startZoneMusic(newZone.name);
     });
     
     // Game over
     this.events.on('game-over', () => {
       this.endGame(false);
     });
+
+    // Start initial zone music (Sunlight Zone)
+    this.audioManager.startZoneMusic('Sunlight Zone');
   }
 
   /**
@@ -939,6 +947,7 @@ export default class GameScene extends Phaser.Scene {
       const harpoon = this.player.fireHarpoon();
       if (harpoon) {
         this.harpoons.push(harpoon);
+        this.audioManager.playHarpoonFire();
       }
     }
     
@@ -946,6 +955,7 @@ export default class GameScene extends Phaser.Scene {
       const success = this.player.activateDash();
       if (success && this.dashCooldownUI) {
         this.dashCooldownUI.startCooldown(this.player.dashAbility.cooldown);
+        this.audioManager.playDashActivate();
       }
     }
     
@@ -1013,6 +1023,7 @@ export default class GameScene extends Phaser.Scene {
           const damage = harpoon.onEnemyCollision(enemy);
           if (damage > 0) {
             this.combatSystem.dealDamage(enemy, damage);
+            this.audioManager.playHarpoonHit();
           }
         }
       });
@@ -1123,6 +1134,14 @@ export default class GameScene extends Phaser.Scene {
     // Update statistics
     this.progressionSystem.updateStatistic('totalDeaths', 1);
     
+    // Track dive time
+    const diveSeconds = Math.floor((Date.now() - this.diveStartTime) / 1000);
+    this.progressionSystem.updateStatistic('totalPlayTime', diveSeconds);
+    const stats = this.progressionSystem.getStatistics();
+    if (diveSeconds > stats.longestDive) {
+      this.progressionSystem.updateStatistic('longestDive', diveSeconds, true);
+    }
+    
     // Update deepest depth if applicable
     const currentDepth = Math.max(0, (this.player.y - this.surfaceOffset) / 100); // Convert pixels to meters (relative to surface)
     if (currentDepth > this.progressionSystem.getStatistics().deepestDepthReached) {
@@ -1151,6 +1170,14 @@ export default class GameScene extends Phaser.Scene {
   surfaceVoluntarily() {
     if (this.gameOver) return;
     this.gameOver = true;
+    
+    // Track dive time
+    const diveSeconds = Math.floor((Date.now() - this.diveStartTime) / 1000);
+    this.progressionSystem.updateStatistic('totalPlayTime', diveSeconds);
+    const stats = this.progressionSystem.getStatistics();
+    if (diveSeconds > stats.longestDive) {
+      this.progressionSystem.updateStatistic('longestDive', diveSeconds, true);
+    }
     
     // Update statistics
     const currentDepth = Math.max(0, (this.player.y - this.surfaceOffset) / 100);
@@ -1193,8 +1220,8 @@ export default class GameScene extends Phaser.Scene {
     // "PAUSED" text
     this.pauseText = this.add.text(width / 2, height / 2 - 40, 'PAUSED', {
       font: 'bold 64px monospace',
-      fill: '#00ccff',
-      stroke: '#000000',
+      fill: UI_CONFIG.COLORS.TEXT_ACCENT,
+      stroke: UI_CONFIG.COLORS.STROKE,
       strokeThickness: 6
     });
     this.pauseText.setOrigin(0.5);
@@ -1204,13 +1231,108 @@ export default class GameScene extends Phaser.Scene {
     
     // Resume instructions
     this.pauseInstructions = this.add.text(width / 2, height / 2 + 40, 'Press ESC to resume', {
-      font: '24px monospace',
-      fill: '#ffffff'
+      font: UI_CONFIG.FONT.LARGE,
+      fill: UI_CONFIG.COLORS.TEXT_PRIMARY
     });
     this.pauseInstructions.setOrigin(0.5);
     this.pauseInstructions.setScrollFactor(0);
     this.pauseInstructions.setDepth(2001);
     this.pauseInstructions.setVisible(false);
+  }
+
+  /**
+   * Show tutorial overlay on first run
+   * Explains controls: WASD, Q=harpoon, Shift=dash, ESC=surface, Space=interact
+   */
+  showTutorialIfFirstRun() {
+    const tutorialKey = 'deepend_tutorial_seen';
+    try {
+      if (localStorage.getItem(tutorialKey)) return;
+    } catch (e) {
+      return; // localStorage unavailable, skip
+    }
+
+    // Pause the game while tutorial is shown
+    this.physics.pause();
+
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    // Dark overlay
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85);
+    overlay.setScrollFactor(0);
+    overlay.setDepth(UI_CONFIG.DEPTH.NOTIFICATION + 100);
+
+    // Title
+    const title = this.add.text(width / 2, height * 0.15, 'HOW TO PLAY', {
+      font: UI_CONFIG.FONT.TITLE,
+      fill: UI_CONFIG.COLORS.TEXT_ACCENT,
+      stroke: UI_CONFIG.COLORS.STROKE,
+      strokeThickness: 4
+    });
+    title.setOrigin(0.5);
+    title.setScrollFactor(0);
+    title.setDepth(UI_CONFIG.DEPTH.NOTIFICATION + 101);
+
+    // Controls text
+    const controls = [
+      '  WASD / Arrows   Move the diver',
+      '  Q               Fire harpoon',
+      '  SHIFT           Dash forward',
+      '  SPACE           Interact with clams',
+      '  ESC             Surface (end dive)',
+      '  M               Toggle audio',
+      '  P               Pause',
+      '',
+      '  Collect pearls from clams to buy upgrades.',
+      '  Watch your oxygen — return to the surface',
+      '  before it runs out!'
+    ];
+
+    const controlsText = this.add.text(width / 2, height * 0.5, controls.join('\n'), {
+      font: UI_CONFIG.FONT.REGULAR,
+      fill: UI_CONFIG.COLORS.TEXT_PRIMARY,
+      lineSpacing: 8,
+      align: 'left'
+    });
+    controlsText.setOrigin(0.5);
+    controlsText.setScrollFactor(0);
+    controlsText.setDepth(UI_CONFIG.DEPTH.NOTIFICATION + 101);
+
+    // Dismiss prompt
+    const dismiss = this.add.text(width / 2, height * 0.88, 'Press any key to start diving...', {
+      font: UI_CONFIG.FONT.MEDIUM,
+      fill: UI_CONFIG.COLORS.TEXT_GOLD
+    });
+    dismiss.setOrigin(0.5);
+    dismiss.setScrollFactor(0);
+    dismiss.setDepth(UI_CONFIG.DEPTH.NOTIFICATION + 101);
+
+    // Pulse the dismiss text
+    this.tweens.add({
+      targets: dismiss,
+      alpha: 0.4,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // Dismiss on any key
+    const dismissTutorial = () => {
+      overlay.destroy();
+      title.destroy();
+      controlsText.destroy();
+      dismiss.destroy();
+      this.physics.resume();
+
+      try {
+        localStorage.setItem(tutorialKey, '1');
+      } catch (e) { /* ignore */ }
+    };
+
+    this.input.keyboard.once('keydown', dismissTutorial);
+    this.input.once('pointerdown', dismissTutorial);
   }
 
   /**

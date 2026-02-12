@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SCENES, COLORS } from '../utils/Constants.js';
+import { SCENES, COLORS, UI_CONFIG } from '../utils/Constants.js';
 import ScoreManager from '../utils/ScoreManager.js';
 import ProgressionSystem from '../systems/ProgressionSystem.js';
 
@@ -24,18 +24,18 @@ export default class MenuScene extends Phaser.Scene {
     
     // Title
     const title = this.add.text(width / 2, height / 3, 'DEEP END', {
-      font: 'bold 42px monospace',
-      fill: '#00ccff',
+      font: UI_CONFIG.FONT.TITLE,
+      fill: UI_CONFIG.COLORS.TEXT_ACCENT,
       stroke: '#003d66',
-      strokeThickness: 4
+      strokeThickness: UI_CONFIG.STROKE_THICKNESS
     });
     title.setOrigin(0.5);
     
     // Subtitle
     const subtitle = this.add.text(width / 2, height / 3 + 50, 'Roguelike Diving Adventure', {
-      font: '20px monospace',
-      fill: '#ffdd00',
-      stroke: '#000000',
+      font: UI_CONFIG.FONT.MEDIUM,
+      fill: UI_CONFIG.COLORS.TEXT_GOLD,
+      stroke: UI_CONFIG.COLORS.STROKE,
       strokeThickness: 2
     });
     subtitle.setOrigin(0.5);
@@ -54,9 +54,9 @@ export default class MenuScene extends Phaser.Scene {
    */
   createContinueButton(width, height) {
     const continueButton = this.add.text(width / 2, height / 2 + 20, 'CONTINUE', {
-      font: 'bold 28px monospace',
-      fill: '#ffffff',
-      backgroundColor: '#003d66',
+      font: UI_CONFIG.FONT.LARGE,
+      fill: UI_CONFIG.COLORS.TEXT_PRIMARY,
+      backgroundColor: UI_CONFIG.COLORS.BG_PANEL,
       padding: { x: 20, y: 10 }
     });
     continueButton.setOrigin(0.5);
@@ -85,9 +85,9 @@ export default class MenuScene extends Phaser.Scene {
     const buttonText = showReset ? 'NEW GAME (Reset Progress)' : 'START GAME';
     
     const newGameButton = this.add.text(width / 2, height / 2 + yOffset, buttonText, {
-      font: 'bold 24px monospace',
-      fill: showReset ? '#ffaa00' : '#ffffff',
-      backgroundColor: '#003d66',
+      font: UI_CONFIG.FONT.LARGE,
+      fill: showReset ? UI_CONFIG.COLORS.TEXT_WARNING : UI_CONFIG.COLORS.TEXT_PRIMARY,
+      backgroundColor: UI_CONFIG.COLORS.BG_PANEL,
       padding: { x: 20, y: 10 }
     });
     newGameButton.setOrigin(0.5);
@@ -99,7 +99,7 @@ export default class MenuScene extends Phaser.Scene {
     });
     
     newGameButton.on('pointerout', () => {
-      newGameButton.setStyle({ fill: showReset ? '#ffaa00' : '#ffffff' });
+      newGameButton.setStyle({ fill: showReset ? UI_CONFIG.COLORS.TEXT_WARNING : UI_CONFIG.COLORS.TEXT_PRIMARY });
     });
     
     newGameButton.on('pointerdown', () => {
@@ -128,8 +128,8 @@ export default class MenuScene extends Phaser.Scene {
       const instructionY = height / 2 + 120;
       instructions.forEach((line, index) => {
         const text = this.add.text(width / 2, instructionY + (index * 22), line, {
-          font: '14px monospace',
-          fill: '#aaaaaa',
+          font: UI_CONFIG.FONT.SMALL,
+          fill: UI_CONFIG.COLORS.TEXT_MUTED,
           align: 'center'
         });
         text.setOrigin(0.5);

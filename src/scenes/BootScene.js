@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SCENES } from '../utils/Constants.js';
+import { SCENES, UI_CONFIG } from '../utils/Constants.js';
 
 /**
  * BootScene - Asset loading and initialization
@@ -25,8 +25,8 @@ export default class BootScene extends Phaser.Scene {
       y: height / 2 - 50,
       text: 'Loading...',
       style: {
-        font: '20px monospace',
-        fill: '#ffffff'
+        font: UI_CONFIG.FONT.MEDIUM,
+        fill: UI_CONFIG.COLORS.TEXT_PRIMARY
       }
     });
     loadingText.setOrigin(0.5, 0.5);
@@ -36,8 +36,8 @@ export default class BootScene extends Phaser.Scene {
       y: height / 2,
       text: '0%',
       style: {
-        font: '18px monospace',
-        fill: '#ffffff'
+        font: UI_CONFIG.FONT.MEDIUM,
+        fill: UI_CONFIG.COLORS.TEXT_ACCENT
       }
     });
     percentText.setOrigin(0.5, 0.5);

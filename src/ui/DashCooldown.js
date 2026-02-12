@@ -3,7 +3,7 @@
  */
 
 import Phaser from 'phaser';
-import { COLORS } from '../utils/Constants.js';
+import { COLORS, UI_CONFIG } from '../utils/Constants.js';
 
 export default class DashCooldown extends Phaser.GameObjects.Container {
   /**
@@ -42,20 +42,16 @@ export default class DashCooldown extends Phaser.GameObjects.Container {
     
     // Label
     this.label = scene.add.text(0, -10, 'DASH', {
-      fontSize: '12px',
-      fontFamily: 'Arial',
-      color: '#FFFFFF',
-      fontStyle: 'bold'
+      font: UI_CONFIG.FONT.SMALL,
+      fill: UI_CONFIG.COLORS.TEXT_PRIMARY
     });
     this.label.setOrigin(0.5);
     this.add(this.label);
     
     // Ready indicator
     this.readyText = scene.add.text(0, 10, 'READY', {
-      fontSize: '10px',
-      fontFamily: 'Arial',
-      color: '#00FF00',
-      fontStyle: 'bold'
+      font: UI_CONFIG.FONT.TINY,
+      fill: UI_CONFIG.COLORS.TEXT_SUCCESS
     });
     this.readyText.setOrigin(0.5);
     this.add(this.readyText);

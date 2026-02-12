@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS } from '../utils/Constants.js';
+import { COLORS, UI_CONFIG } from '../utils/Constants.js';
 
 /**
  * DepthMeter UI Component
@@ -18,25 +18,24 @@ export default class DepthMeter extends Phaser.GameObjects.Container {
     
     // Depth text
     this.depthText = scene.add.text(0, -15, 'Depth: 0m', {
-      fontSize: '18px',
-      fontFamily: 'Arial',
-      color: '#ffffff',
-      fontStyle: 'bold'
+      font: UI_CONFIG.FONT.MEDIUM,
+      fill: UI_CONFIG.COLORS.TEXT_PRIMARY,
+      stroke: UI_CONFIG.COLORS.STROKE,
+      strokeThickness: 2
     });
     this.depthText.setOrigin(0.5);
     this.add(this.depthText);
     
     // Zone name text
     this.zoneText = scene.add.text(0, 10, 'Sunlight Zone', {
-      fontSize: '14px',
-      fontFamily: 'Arial',
-      color: '#aaffff'
+      font: UI_CONFIG.FONT.SMALL,
+      fill: '#aaffff'
     });
     this.zoneText.setOrigin(0.5);
     this.add(this.zoneText);
     
     this.setScrollFactor(0);
-    this.setDepth(100);
+    this.setDepth(UI_CONFIG.DEPTH.HUD);
   }
 
   /**
@@ -84,17 +83,15 @@ export default class DepthMeter extends Phaser.GameObjects.Container {
       this.scene.cameras.main.height / 2 - 100,
       `Entering ${zoneName}`,
       {
-        fontSize: '32px',
-        fontFamily: 'Arial',
-        color: '#ffff00',
-        fontStyle: 'bold',
-        stroke: '#000000',
+        font: UI_CONFIG.FONT.HEADER,
+        fill: UI_CONFIG.COLORS.TEXT_GOLD,
+        stroke: UI_CONFIG.COLORS.STROKE,
         strokeThickness: 6
       }
     );
     notification.setOrigin(0.5);
     notification.setScrollFactor(0);
-    notification.setDepth(200);
+    notification.setDepth(UI_CONFIG.DEPTH.NOTIFICATION);
     notification.setAlpha(0);
     
     // Fade in and out

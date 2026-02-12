@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SCENES, COLORS } from '../utils/Constants.js';
+import { SCENES, COLORS, UI_CONFIG } from '../utils/Constants.js';
 
 /**
  * GameOverScene - Victory/defeat screen with restart option
@@ -30,9 +30,9 @@ export default class GameOverScene extends Phaser.Scene {
     const resultText = this.victory ? 'LEVEL COMPLETE!' : 'OXYGEN DEPLETED';
     
     const title = this.add.text(width / 2, height / 3, resultText, {
-      font: 'bold 48px monospace',
+      font: UI_CONFIG.FONT.TITLE,
       fill: resultColor,
-      stroke: '#000000',
+      stroke: UI_CONFIG.COLORS.STROKE,
       strokeThickness: 6
     });
     title.setOrigin(0.5);
@@ -47,8 +47,8 @@ export default class GameOverScene extends Phaser.Scene {
     
     stats.forEach((line, index) => {
       const text = this.add.text(width / 2, statsY + (index * 32), line, {
-        font: '24px monospace',
-        fill: '#ffffff',
+        font: UI_CONFIG.FONT.LARGE,
+        fill: UI_CONFIG.COLORS.TEXT_PRIMARY,
         align: 'center'
       });
       text.setOrigin(0.5);
@@ -56,8 +56,8 @@ export default class GameOverScene extends Phaser.Scene {
     
     // Return to Shop button (primary action for roguelike loop)
     const shopButton = this.add.text(width / 2, height - 170, 'RETURN TO SHOP', {
-      font: 'bold 28px monospace',
-      fill: '#ffffff',
+      font: UI_CONFIG.FONT.LARGE,
+      fill: UI_CONFIG.COLORS.TEXT_PRIMARY,
       backgroundColor: '#006600',
       padding: { x: 20, y: 10 }
     });
@@ -78,9 +78,9 @@ export default class GameOverScene extends Phaser.Scene {
     
     // Restart button
     const restartButton = this.add.text(width / 2, height - 110, 'RESTART', {
-      font: 'bold 24px monospace',
-      fill: '#cccccc',
-      backgroundColor: '#003d66',
+      font: UI_CONFIG.FONT.LARGE,
+      fill: UI_CONFIG.COLORS.TEXT_SECONDARY,
+      backgroundColor: UI_CONFIG.COLORS.BG_PANEL,
       padding: { x: 20, y: 10 }
     });
     restartButton.setOrigin(0.5);
@@ -100,8 +100,8 @@ export default class GameOverScene extends Phaser.Scene {
     
     // Menu button
     const menuButton = this.add.text(width / 2, height - 60, 'MAIN MENU', {
-      font: '20px monospace',
-      fill: '#aaaaaa'
+      font: UI_CONFIG.FONT.MEDIUM,
+      fill: UI_CONFIG.COLORS.TEXT_MUTED
     });
     menuButton.setOrigin(0.5);
     menuButton.setInteractive({ useHandCursor: true });
@@ -134,8 +134,8 @@ export default class GameOverScene extends Phaser.Scene {
     // Continue to next level if victory
     if (this.victory) {
       const continueText = this.add.text(width / 2, height - 160, 'Press ENTER for Next Level', {
-        font: '18px monospace',
-        fill: '#00ff00'
+        font: UI_CONFIG.FONT.MEDIUM,
+        fill: UI_CONFIG.COLORS.TEXT_SUCCESS
       });
       continueText.setOrigin(0.5);
       
