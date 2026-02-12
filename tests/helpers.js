@@ -201,6 +201,7 @@ export function isColliding(entity1, entity2) {
 export function createMockScene() {
   return {
     add: {
+      existing: jest.fn(),
       sprite: jest.fn(() => ({})),
       graphics: jest.fn(() => ({})),
       text: jest.fn(() => ({})),
@@ -208,11 +209,18 @@ export function createMockScene() {
     },
     physics: {
       add: {
+        existing: jest.fn(),
         sprite: jest.fn(() => ({
           setCollideWorldBounds: jest.fn(),
           setVelocity: jest.fn(),
           body: {}
-        }))
+        })),
+        staticBody: jest.fn((x, y, w, h) => ({
+          x, y, width: w, height: h,
+          enable: true,
+          destroy: jest.fn()
+        })),
+        overlap: jest.fn()
       }
     },
     time: {

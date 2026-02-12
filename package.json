@@ -29,6 +29,7 @@
   "devDependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-env": "^7.28.5",
+    "@napi-rs/canvas": "^0.1.91",
     "@playwright/test": "^1.40.0",
     "@types/jest": "^29.5.10",
     "babel-jest": "^30.2.0",

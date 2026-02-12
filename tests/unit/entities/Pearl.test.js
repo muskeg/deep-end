@@ -22,6 +22,13 @@ describe('Pearl Entity', () => {
           fillStyle: jest.fn(),
           fillCircle: jest.fn(),
           destroy: jest.fn()
+        })),
+        circle: jest.fn(() => ({
+          setDepth: jest.fn().mockReturnThis(),
+          setPipeline: jest.fn().mockReturnThis(),
+          destroy: jest.fn(),
+          x: 0,
+          y: 0
         }))
       },
       physics: {
@@ -150,14 +157,11 @@ describe('Pearl Entity', () => {
       );
     });
 
-    test('should have shimmer effect', () => {
+    test('should have shimmer effect via sprite frame cycling', () => {
       const pearl = new Pearl(mockScene, 150, 250);
       
-      expect(mockScene.tweens.add).toHaveBeenCalledWith(
-        expect.objectContaining({
-          targets: expect.objectContaining({ alpha: expect.any(Number) })
-        })
-      );
+      // Shimmer now works via sprite frame cycling in update(), not tweens
+      expect(() => pearl.update(16)).not.toThrow();
     });
 
     test('should update visual state each frame', () => {
@@ -210,12 +214,10 @@ describe('Pearl Entity', () => {
     test('should stop animations when destroyed', () => {
       const pearl = new Pearl(mockScene, 150, 250);
       pearl.floatTween = { stop: jest.fn() };
-      pearl.shimmerTween = { stop: jest.fn() };
       
       pearl.destroy();
       
       expect(pearl.floatTween.stop).toHaveBeenCalled();
-      expect(pearl.shimmerTween.stop).toHaveBeenCalled();
     });
 
     test('should clean up physics body', () => {

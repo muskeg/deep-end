@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { PLAYER_CONFIG, OXYGEN_CONFIG, COLORS, COMBAT_CONFIG } from '../utils/Constants.js';
 import Harpoon from './Harpoon.js';
-import SpriteGenerator from '../utils/SpriteGenerator.js';
 
 /**
  * Player Entity
@@ -9,11 +8,6 @@ import SpriteGenerator from '../utils/SpriteGenerator.js';
  */
 export default class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, upgradeParams = {}) {
-    // Generate sprites if not already created
-    if (!scene.textures.exists('diver-idle-down')) {
-      SpriteGenerator.generateDiverSprites(scene);
-    }
-    
     super(scene, x, y, 'diver-idle-down');
     
     this.scene = scene;
@@ -102,7 +96,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.isMoving = true;
       
       // Update direction for animation
-      this.currentDirection = SpriteGenerator.getDirectionFromVelocity(velocityX, velocityY);
+      this.currentDirection = Player.getDirectionFromVelocity(velocityX, velocityY);
     } else {
       this.isMoving = false;
     }
@@ -192,7 +186,13 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
    */
   updateAnimation(deltaTime) {
     // Update animation frame
-    if (this.isMoving) {
+    if (this.dashAbility.active) {
+      // Dash texture (cyan-tinted)
+      const textureName = `diver-dash-${this.currentDirection}`;
+      if (this.scene.textures.exists(textureName)) {
+        this.setTexture(textureName);
+      }
+    } else if (this.isMoving) {
       this.animationTimer += deltaTime;
       if (this.animationTimer >= this.animationSpeed) {
         this.animationFrame = (this.animationFrame + 1) % 2; // 2 frame animation
@@ -350,5 +350,30 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       },
       loop: true
     });
+  }
+  
+  /**
+   * Get direction name from velocity vector
+   * @param {number} vx - X velocity
+   * @param {number} vy - Y velocity
+   * @returns {string} Direction name (8-directional)
+   */
+  static getDirectionFromVelocity(vx, vy) {
+    if (vx === 0 && vy === 0) return 'down';
+    
+    const angle = Math.atan2(vy, vx);
+    const degrees = angle * (180 / Math.PI);
+    const normalized = (degrees + 360) % 360;
+    
+    if (normalized >= 337.5 || normalized < 22.5) return 'right';
+    if (normalized >= 22.5 && normalized < 67.5) return 'down-right';
+    if (normalized >= 67.5 && normalized < 112.5) return 'down';
+    if (normalized >= 112.5 && normalized < 157.5) return 'down-left';
+    if (normalized >= 157.5 && normalized < 202.5) return 'left';
+    if (normalized >= 202.5 && normalized < 247.5) return 'up-left';
+    if (normalized >= 247.5 && normalized < 292.5) return 'up';
+    if (normalized >= 292.5 && normalized < 337.5) return 'up-right';
+    
+    return 'down';
   }
 }

@@ -4,14 +4,21 @@
  */
 
 class MockSprite {
-  constructor(scene, x, y) {
+  constructor(scene, x, y, texture) {
     this.scene = scene;
     this.x = x;
     this.y = y;
+    this.texture = { key: texture || '' };
     this.active = true;
     this.visible = true;
     this.alpha = 1;
     this.scale = 1;
+    this.depth = 0;
+    this.rotation = 0;
+    this.displayWidth = 0;
+    this.displayHeight = 0;
+    this.originX = 0.5;
+    this.originY = 0.5;
     this.body = {
       velocity: { x: 0, y: 0 },
       enable: true,
@@ -22,11 +29,44 @@ class MockSprite {
   
   setCollideWorldBounds = jest.fn().mockReturnValue(this);
   setImmovable = jest.fn().mockReturnValue(this);
+  setDisplaySize = jest.fn().mockReturnValue(this);
+  setPipeline = jest.fn().mockReturnValue(this);
+  setTexture = jest.fn().mockReturnValue(this);
+  setOrigin = jest.fn().mockReturnValue(this);
+  setDepth = jest.fn().mockReturnValue(this);
+  setAlpha = jest.fn().mockReturnValue(this);
+  setScale = jest.fn().mockReturnValue(this);
   setVelocity(x, y) {
     this.body.velocity.x = x;
     this.body.velocity.y = y;
     return this;
   }
+  destroy() {
+    this.active = false;
+  }
+}
+
+class MockImage {
+  constructor(scene, x, y, texture) {
+    this.scene = scene;
+    this.x = x;
+    this.y = y;
+    this.texture = { key: texture || '' };
+    this.active = true;
+    this.visible = true;
+    this.alpha = 1;
+    this.scale = 1;
+    this.displayWidth = 0;
+    this.displayHeight = 0;
+  }
+
+  setDisplaySize = jest.fn().mockReturnValue(this);
+  setPipeline = jest.fn().mockReturnValue(this);
+  setTexture = jest.fn().mockReturnValue(this);
+  setOrigin = jest.fn().mockReturnValue(this);
+  setDepth = jest.fn().mockReturnValue(this);
+  setAlpha = jest.fn().mockReturnValue(this);
+  setScale = jest.fn().mockReturnValue(this);
   destroy() {
     this.active = false;
   }
@@ -99,6 +139,7 @@ const Phaser = {
   GameObjects: {
     GameObject: MockGameObject,
     Sprite: MockSprite,
+    Image: MockImage,
     Graphics: MockGraphics,
     Text: MockText
   },
@@ -110,6 +151,7 @@ const Phaser = {
   
   Math: {
     Clamp: (value, min, max) => Math.max(min, Math.min(max, value)),
+    Between: (min, max) => Math.floor(Math.random() * (max - min + 1)) + min,
     Distance: {
       Between: (x1, y1, x2, y2) => {
         const dx = x1 - x2;
@@ -134,6 +176,11 @@ const Phaser = {
         add: {
           existing: jest.fn(),
           sprite: jest.fn(() => new MockSprite(this, 0, 0)),
+          staticBody: jest.fn((x, y, w, h) => ({
+            x, y, width: w, height: h,
+            enable: true,
+            destroy: jest.fn()
+          })),
           overlap: jest.fn()
         }
       };

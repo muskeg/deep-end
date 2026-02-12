@@ -142,23 +142,23 @@
 
 ### Implementation for User Story 4
 
-- [ ] T063 [P] [US4] Create sprite asset files: `assets/sprites/diver/` (idle, swim, dash animation frames)
-- [ ] T064 [P] [US4] Create sprite asset files: `assets/sprites/enemies/` (jellyfish, squid, anglerfish sprites per zone)
-- [ ] T065 [P] [US4] Create sprite asset files: `assets/sprites/clams/` (closed, opening animation frames, open)
-- [ ] T066 [P] [US4] Create sprite asset files: `assets/sprites/harpoon/` (projectile sprite)
-- [ ] T067 [P] [US4] Generate texture atlas: `assets/atlas/game-atlas.json` with all sprite definitions using TexturePacker or Phaser tooling
-- [ ] T068 [US4] Update `src/scenes/BootScene.js` preload() to load game-atlas.json and atlas.png
-- [ ] T069 [US4] Update `src/entities/Player.js` to use sprite from atlas instead of circle graphics (this.setTexture('game-atlas', 'diver-idle'))
-- [ ] T070 [US4] In Player.js, add swim animation (play on movement), idle animation (play when stationary), dash animation (play during dash)
-- [ ] T071 [US4] In Player.js, add sprite flip logic (flipX based on movement direction)
-- [ ] T072 [US4] Update `src/entities/Enemy.js` to use zone-appropriate sprite (jellyfish/squid/anglerfish based on zone)
-- [ ] T073 [US4] In Enemy.js, add movement animation, flipX based on direction
-- [ ] T074 [US4] Update `src/entities/Clam.js` to use clam sprite, add opening animation (3-frame sequence transitioning closed → open)
-- [ ] T075 [US4] In Clam.js, play opening animation on player interaction
-- [ ] T076 [US4] Update `src/entities/Harpoon.js` to use harpoon sprite instead of rectangle
-- [ ] T077 [US4] Update `src/entities/Pearl.js` to use pearl sprite instead of small circle
-- [ ] T078 [US4] Remove all debug collision box outlines from entities (debugShowBody = false)
-- [ ] T079 [US4] Add enemy death particle effect or sprite animation when killed
+- [x] T063 [P] [US4] Create sprite asset files: `assets/sprites/diver/` (idle, swim, dash animation frames)
+- [x] T064 [P] [US4] Create sprite asset files: `assets/sprites/enemies/` (jellyfish, squid, anglerfish sprites per zone)
+- [x] T065 [P] [US4] Create sprite asset files: `assets/sprites/clams/` (closed, opening animation frames, open)
+- [x] T066 [P] [US4] Create sprite asset files: `assets/sprites/harpoon/` (projectile sprite)
+- [x] T067 [P] [US4] Generate sprite assets via `scripts/generate-sprites.cjs` (individual PNGs instead of atlas)
+- [x] T068 [US4] Update `src/scenes/BootScene.js` preload() to load all sprite PNGs
+- [x] T069 [US4] Update `src/entities/Player.js` to use sprite textures instead of SpriteGenerator
+- [x] T070 [US4] In Player.js, add swim animation (play on movement), idle animation (play when stationary), dash animation (play during dash)
+- [x] T071 [US4] In Player.js, add sprite direction logic (8-direction textures via getDirectionFromVelocity)
+- [x] T072 [US4] Update `src/entities/Jellyfish.js` and `src/entities/Eel.js` to use preloaded sprite textures
+- [x] T073 [US4] In Eel.js, remove broken updateVisuals() referencing undefined graphics
+- [x] T074 [US4] Update `src/entities/Clam.js` to use clam sprite, add opening animation (3-frame sequence transitioning closed → open)
+- [x] T075 [US4] In Clam.js, play opening animation on player interaction
+- [x] T076 [US4] Update `src/entities/Harpoon.js` to use harpoon sprite instead of rectangle
+- [x] T077 [US4] Update `src/entities/Pearl.js` to use pearl sprite instead of small circle
+- [x] T078 [US4] Debug collision outlines already disabled (debug: false in physics config)
+- [x] T079 [US4] Enemy death particle effect already implemented in CombatSystem.createDeathEffect()
 
 **Checkpoint**: User Story 4 complete - Professional sprite-based visuals replace geometric placeholders
 

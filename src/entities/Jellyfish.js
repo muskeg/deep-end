@@ -5,7 +5,6 @@
 
 import Enemy from './Enemy.js';
 import { ENEMY_CONFIG } from '../utils/Constants.js';
-import SpriteGenerator from '../utils/SpriteGenerator.js';
 
 export default class Jellyfish extends Enemy {
   /**
@@ -18,11 +17,6 @@ export default class Jellyfish extends Enemy {
    * @param {object} multipliers - Zone-based difficulty multipliers
    */
   constructor(scene, x, y, player, waypoints = [], multipliers = {}) {
-    // Generate sprites if they don't exist
-    if (!scene.textures.exists('jellyfish-0')) {
-      SpriteGenerator.generateJellyfishSprites(scene);
-    }
-    
     super(scene, x, y, 'jellyfish-0', player, ENEMY_CONFIG.JELLYFISH.DETECTION_RADIUS);
     
     // Animation properties

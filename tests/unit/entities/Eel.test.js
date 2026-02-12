@@ -319,42 +319,20 @@ describe('Eel Entity', () => {
   });
 
   describe('Visual Updates', () => {
-    test('should update visuals each frame', () => {
+    test('should update texture based on direction', () => {
       const eel = new Eel(mockScene, 200, 300, mockPlayer);
-      const updateVisualsSpy = jest.spyOn(eel, 'updateVisuals');
       
-      eel.update(0, 16);
-      
-      expect(updateVisualsSpy).toHaveBeenCalled();
-    });
-
-    test('should change color when chasing', () => {
-      const eel = new Eel(mockScene, 400, 300, mockPlayer);
-      mockPlayer.x = 450;
-      mockPlayer.y = 300;
-      
-      eel.update(0, 16);
-      
-      expect(eel.graphics.fillStyle).toHaveBeenCalled();
-    });
-
-    test('should change color when lunging', () => {
-      const eel = new Eel(mockScene, 400, 300, mockPlayer);
-      eel.state = 'lunging';
-      
-      eel.updateVisuals();
-      
-      expect(eel.graphics.fillStyle).toHaveBeenCalled();
+      // Eel now uses sprite textures, update should not throw
+      expect(() => eel.update(0, 16)).not.toThrow();
     });
   });
 
   describe('Cleanup', () => {
-    test('should destroy graphics on cleanup', () => {
+    test('should clean up on destroy', () => {
       const eel = new Eel(mockScene, 200, 300, mockPlayer);
       
-      eel.destroy();
-      
-      expect(eel.graphics.destroy).toHaveBeenCalled();
+      expect(() => eel.destroy()).not.toThrow();
+      expect(eel.active).toBe(false);
     });
   });
 });

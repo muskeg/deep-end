@@ -7,7 +7,7 @@ import { PEARL_VALUE, COLORS } from '../utils/Constants.js';
  */
 export default class Pearl extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, value = PEARL_VALUE) {
-    super(scene, x, y);
+    super(scene, x, y, 'pearl-0');
     
     this.scene = scene;
     scene.add.existing(this);
@@ -17,17 +17,21 @@ export default class Pearl extends Phaser.Physics.Arcade.Sprite {
     this.value = value;
     this.isCollected = false;
     
-    // Graphics
-    this.graphics = scene.add.graphics();
-    this.graphics.setPipeline('Light2D'); // Enable lighting
-    this.updateVisuals();
+    // Sprite setup
+    this.setOrigin(0.5, 0.5);
+    this.setPipeline('Light2D');
+    this.setDisplaySize(20, 20);
+    
+    // Animation state
+    this.shimmerFrame = 0;
+    this.shimmerTimer = 0;
+    this.shimmerSpeed = 250; // ms per frame
     
     // Physics
     this.body.setCircle(10);
     
     // Visual effects
     this.createFloatAnimation();
-    this.createShimmerEffect();
   }
   
   /**
@@ -41,25 +45,6 @@ export default class Pearl extends Phaser.Physics.Arcade.Sprite {
       ease: 'Sine.easeInOut',
       yoyo: true,
       repeat: -1
-    });
-  }
-  
-  /**
-   * Create shimmer effect
-   */
-  createShimmerEffect() {
-    const shimmerData = { alpha: 1 };
-    
-    this.shimmerTween = this.scene.tweens.add({
-      targets: shimmerData,
-      alpha: 0.6,
-      duration: 800,
-      ease: 'Sine.easeInOut',
-      yoyo: true,
-      repeat: -1,
-      onUpdate: () => {
-        this.updateVisuals(shimmerData.alpha);
-      }
     });
   }
   
@@ -168,20 +153,10 @@ export default class Pearl extends Phaser.Physics.Arcade.Sprite {
   }
   
   /**
-   * Update visual representation
+   * Update visual representation (shimmer animation via sprite frames)
    */
-  updateVisuals(alpha = 1) {
-    if (!this.graphics) return;
-    
-    this.graphics.clear();
-    
-    // Draw pearl with shimmer
-    this.graphics.fillStyle(COLORS.PEARL, alpha);
-    this.graphics.fillCircle(this.x, this.y, 10);
-    
-    // Highlight
-    this.graphics.fillStyle(0xffffff, alpha * 0.5);
-    this.graphics.fillCircle(this.x - 3, this.y - 3, 4);
+  updateVisuals() {
+    // Shimmer handled by frame cycling in update()
   }
   
   /**
@@ -189,7 +164,13 @@ export default class Pearl extends Phaser.Physics.Arcade.Sprite {
    */
   update(time, delta) {
     if (!this.isCollected) {
-      this.updateVisuals();
+      // Cycle through shimmer frames
+      this.shimmerTimer += delta;
+      if (this.shimmerTimer >= this.shimmerSpeed) {
+        this.shimmerTimer = 0;
+        this.shimmerFrame = (this.shimmerFrame + 1) % 3;
+        this.setTexture(`pearl-${this.shimmerFrame}`);
+      }
     }
   }
   
@@ -199,12 +180,6 @@ export default class Pearl extends Phaser.Physics.Arcade.Sprite {
   destroy() {
     if (this.floatTween) {
       this.floatTween.stop();
-    }
-    if (this.shimmerTween) {
-      this.shimmerTween.stop();
-    }
-    if (this.graphics) {
-      this.graphics.destroy();
     }
     if (this.body) {
       this.body.destroy();

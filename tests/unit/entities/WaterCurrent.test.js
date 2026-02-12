@@ -28,6 +28,7 @@ describe('WaterCurrent Entity', () => {
           lineTo: jest.fn().mockReturnThis(),
           strokePath: jest.fn().mockReturnThis(),
           setAlpha: jest.fn().mockReturnThis(),
+          setPipeline: jest.fn().mockReturnThis(),
           destroy: jest.fn()
         }))
       },
