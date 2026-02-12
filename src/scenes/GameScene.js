@@ -793,6 +793,66 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Check unsettled clams against walls and settle them on contact.
+   * Clams fall with gravity until they touch a wall surface (floor or side),
+   * then freeze in place like barnacles.
+   */
+  settleClamsOnWalls() {
+    const tileSize = GAME_CONFIG.TILE_SIZE;
+    
+    for (const clam of this.clams) {
+      if (!clam.active || clam.isSettled) continue;
+      
+      // Check AABB overlap between clam and nearby walls
+      const clamHalfW = 20; // clam collision radius
+      const clamHalfH = 20;
+      const clamLeft = clam.x - clamHalfW;
+      const clamRight = clam.x + clamHalfW;
+      const clamTop = clam.y - clamHalfH;
+      const clamBottom = clam.y + clamHalfH;
+      
+      for (const wall of this.walls) {
+        const wallHalfW = wall.tileSize / 2;
+        const wallHalfH = wall.tileSize / 2;
+        const wallLeft = wall.x - wallHalfW;
+        const wallRight = wall.x + wallHalfW;
+        const wallTop = wall.y - wallHalfH;
+        const wallBottom = wall.y + wallHalfH;
+        
+        // AABB overlap check
+        if (clamRight > wallLeft && clamLeft < wallRight &&
+            clamBottom > wallTop && clamTop < wallBottom) {
+          
+          // Determine which side the clam hit and snap to surface
+          const overlapBottom = clamBottom - wallTop;
+          const overlapTop = wallBottom - clamTop;
+          const overlapRight = clamRight - wallLeft;
+          const overlapLeft = wallRight - clamLeft;
+          
+          const minOverlap = Math.min(overlapBottom, overlapTop, overlapRight, overlapLeft);
+          
+          if (minOverlap === overlapBottom) {
+            // Landing on top of wall (floor)
+            clam.y = wallTop - clamHalfH;
+          } else if (minOverlap === overlapTop) {
+            // Hitting bottom of wall (ceiling)
+            clam.y = wallBottom + clamHalfH;
+          } else if (minOverlap === overlapRight) {
+            // Hitting left side of wall
+            clam.x = wallLeft - clamHalfW;
+          } else {
+            // Hitting right side of wall
+            clam.x = wallRight + clamHalfW;
+          }
+          
+          clam.settle();
+          break;
+        }
+      }
+    }
+  }
+
   update(time, delta) {
     if (this.gameOver || this.isPaused) return;
     
@@ -926,6 +986,9 @@ export default class GameScene extends Phaser.Scene {
     
     // Update clams
     this.clams.forEach(clam => clam.update(time, delta));
+    
+    // Check clam-wall collisions for settling (barnacle physics)
+    this.settleClamsOnWalls();
     
     // Update currents
     this.currents.forEach(current => current.update(time, delta));

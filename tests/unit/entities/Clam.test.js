@@ -31,7 +31,13 @@ describe('Clam Entity', () => {
           sprite: jest.fn(() => ({
             setImmovable: jest.fn().mockReturnThis(),
             body: {
-              setCircle: jest.fn()
+              setCircle: jest.fn(),
+              setGravityY: jest.fn(),
+              setBounce: jest.fn(),
+              setDrag: jest.fn(),
+              setVelocity: jest.fn(),
+              setImmovable: jest.fn(),
+              setAllowGravity: jest.fn()
             }
           })),
           existing: jest.fn()
@@ -76,10 +82,11 @@ describe('Clam Entity', () => {
       expect(clamWithoutPearl.hasPearl).toBe(false);
     });
 
-    test('should be immovable', () => {
+    test('should start with gravity enabled (unsettled)', () => {
       const clam = new Clam(mockScene, 100, 200, true);
       
-      expect(clam.setImmovable).toHaveBeenCalledWith(true);
+      expect(clam.body.setGravityY).toHaveBeenCalledWith(200);
+      expect(clam.isSettled).toBe(false);
     });
 
     test('should have circular collision body', () => {
@@ -273,6 +280,44 @@ describe('Clam Entity', () => {
       
       // Verify timer was created and clam can be destroyed without error
       expect(() => clam.destroy()).not.toThrow();
+    });
+  });
+
+  describe('Physics Settling', () => {
+    test('should settle and become immovable', () => {
+      const clam = new Clam(mockScene, 100, 200, true);
+      
+      expect(clam.isSettled).toBe(false);
+      
+      clam.settle();
+      
+      expect(clam.isSettled).toBe(true);
+      expect(clam.body.setGravityY).toHaveBeenCalledWith(0);
+      expect(clam.body.setVelocity).toHaveBeenCalledWith(0, 0);
+      expect(clam.body.setImmovable).toHaveBeenCalledWith(true);
+      expect(clam.body.setAllowGravity).toHaveBeenCalledWith(false);
+    });
+
+    test('should not settle twice', () => {
+      const clam = new Clam(mockScene, 100, 200, true);
+      
+      clam.settle();
+      clam.body.setGravityY.mockClear();
+      
+      clam.settle(); // Should be a no-op
+      
+      expect(clam.body.setGravityY).not.toHaveBeenCalled();
+    });
+
+    test('should start settle timeout on creation', () => {
+      new Clam(mockScene, 100, 200, true);
+      
+      // Should have called addEvent for the 2-second timeout
+      expect(mockScene.time.addEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          delay: 2000
+        })
+      );
     });
   });
 });

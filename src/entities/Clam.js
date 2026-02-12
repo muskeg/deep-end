@@ -4,7 +4,8 @@ import Pearl from './Pearl.js';
 
 /**
  * Clam Entity
- * Interactive object that opens to dispense pearls
+ * Interactive object that opens to dispense pearls.
+ * Spawns with gravity enabled and settles on floors/walls like barnacles.
  */
 export default class Clam extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, hasPearl = true, pearlValue = 1) {
@@ -30,13 +31,46 @@ export default class Clam extends Phaser.Physics.Arcade.Sprite {
     this.openingTimer = 0;
     this.isOpening = false;
     
-    // Physics
-    this.setImmovable(true);
+    // Physics — gravity settling (barnacle behavior)
+    this.isSettled = false;
+    this.settleTimeout = null;
     this.body.setCircle(20);
+    
+    // Enable gravity so the clam falls until it hits a surface
+    this.body.setGravityY(200);
+    this.body.setBounce(0);
+    this.body.setDrag(0);
+    
+    // Start settle timeout — force-freeze after 2 seconds if no collision
+    this.settleTimeout = scene.time.addEvent({
+      delay: 2000,
+      callback: () => this.settle(),
+      callOnce: true
+    });
     
     // Timer for auto-close
     this.closeTimer = null;
     this.autoCloseDelay = 3000; // 3 seconds
+  }
+  
+  /**
+   * Settle the clam — freeze in place (called on wall collision or timeout)
+   */
+  settle() {
+    if (this.isSettled) return;
+    
+    this.isSettled = true;
+    this.body.setGravityY(0);
+    this.body.setVelocity(0, 0);
+    this.body.setImmovable(true);
+    this.body.setAllowGravity(false);
+    this.setImmovable(true);
+    
+    // Cancel settle timeout if it hasn't fired yet
+    if (this.settleTimeout) {
+      this.settleTimeout.remove();
+      this.settleTimeout = null;
+    }
   }
   
   /**
@@ -137,6 +171,10 @@ export default class Clam extends Phaser.Physics.Arcade.Sprite {
   destroy() {
     if (this.closeTimer) {
       this.closeTimer.remove();
+    }
+    if (this.settleTimeout) {
+      this.settleTimeout.remove();
+      this.settleTimeout = null;
     }
     super.destroy();
   }

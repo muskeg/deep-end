@@ -23,6 +23,12 @@ class MockSprite {
       velocity: { x: 0, y: 0 },
       enable: true,
       setCircle: jest.fn().mockReturnThis(),
+      setGravityY: jest.fn().mockReturnThis(),
+      setBounce: jest.fn().mockReturnThis(),
+      setDrag: jest.fn().mockReturnThis(),
+      setVelocity: jest.fn().mockReturnThis(),
+      setImmovable: jest.fn().mockReturnThis(),
+      setAllowGravity: jest.fn().mockReturnThis(),
       destroy: jest.fn()
     };
   }

@@ -172,14 +172,14 @@
 
 ### Implementation for User Story 5
 
-- [ ] T080 [P] [US5] Update `src/entities/Clam.js` constructor to enable arcade physics body gravity (body.setGravityY(200))
-- [ ] T081 [US5] In Clam.js, add collision handling for floor/wall contact
-- [ ] T082 [US5] In Clam.js onCollisionStart() callback, disable gravity (body.setGravityY(0)), make immovable (body.setImmovable(true))
-- [ ] T083 [US5] In Clam.js, add 2-second timeout from spawn to force-freeze if no collision (prevents infinite falling)
-- [ ] T084 [US5] Update GameScene clam spawning to spawn in mid-water positions (let physics settle them)
-- [ ] T085 [US5] In GameScene, add arcade physics collider between clam group and wall group
-- [ ] T086 [US5] In GameScene, verify clam-wall collisions trigger onCollisionStart() properly
-- [ ] T087 [US5] Test that clams can attach to vertical wall surfaces (barnacle behavior)
+- [x] T080 [P] [US5] Update `src/entities/Clam.js` constructor to enable arcade physics body gravity (body.setGravityY(200))
+- [x] T081 [US5] In Clam.js, add collision handling for floor/wall contact
+- [x] T082 [US5] In Clam.js onCollisionStart() callback, disable gravity (body.setGravityY(0)), make immovable (body.setImmovable(true))
+- [x] T083 [US5] In Clam.js, add 2-second timeout from spawn to force-freeze if no collision (prevents infinite falling)
+- [x] T084 [US5] Update GameScene clam spawning to spawn in mid-water positions (let physics settle them)
+- [x] T085 [US5] In GameScene, add arcade physics collider between clam group and wall group
+- [x] T086 [US5] In GameScene, verify clam-wall collisions trigger onCollisionStart() properly
+- [x] T087 [US5] Test that clams can attach to vertical wall surfaces (barnacle behavior)
 
 **Checkpoint**: User Story 5 complete - Realistic clam placement using physics simulation
 
