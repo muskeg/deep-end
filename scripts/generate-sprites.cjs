@@ -5,7 +5,7 @@
  * Uses @napi-rs/canvas (no native deps needed)
  * 
  * Usage: node scripts/generate-sprites.js
- * Output: assets/sprites/<entity>/*.png
+ * Output: public/assets/sprites/<entity>/*.png
  */
 
 const { createCanvas } = require('@napi-rs/canvas');
@@ -769,7 +769,7 @@ function generateAtlasJson(baseDir) {
 
 // ── Main ────────────────────────────────────────────────────────────────────
 function main() {
-  const baseDir = path.join(__dirname, '..', 'assets', 'sprites');
+  const baseDir = path.join(__dirname, '..', 'public', 'assets', 'sprites');
   console.log('🎨 Generating sprite assets...\n');
 
   generateDiverSprites(path.join(baseDir, 'diver'));
@@ -782,7 +782,7 @@ function main() {
   generateCurrentSprites(path.join(baseDir, 'effects'));
   generateAtlasJson(baseDir);
 
-  console.log('\n✅ Done! All sprites generated in assets/sprites/');
+  console.log('\n✅ Done! All sprites generated in public/assets/sprites/');
 }
 
 main();
